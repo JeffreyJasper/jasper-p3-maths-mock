@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jasper 數學特訓：直式拆解版</title>
+    <title>Jasper 小三數學模擬試卷 (V4.0 完整版)</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -18,51 +18,40 @@
         }
         .font-mono { font-family: 'Roboto Mono', monospace; }
         
-        /* 隱藏 Input 的箭頭 */
         input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         
-        /* 直式格線設計 */
+        /* 直式輸入格優化 */
         .digit-input {
-            width: 100%;
-            height: 100%;
-            text-align: center;
-            font-family: 'Roboto Mono', monospace;
-            font-weight: 700;
-            font-size: 1.5rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 0.5rem;
-            background-color: white;
+            width: 100%; height: 100%;
+            text-align: center; font-family: 'Roboto Mono', monospace;
+            font-weight: 700; font-size: 1.5rem;
+            border: 2px solid #cbd5e1; border-radius: 0.5rem;
+            background-color: white; color: #1e293b;
             transition: all 0.2s;
-            color: #1e293b;
         }
         .digit-input:focus {
-            border-color: #6366f1;
-            outline: none;
-            background-color: #eef2ff;
-            transform: scale(1.05);
+            border-color: #6366f1; outline: none; background-color: #eef2ff; transform: scale(1.05);
+            z-index: 10;
         }
+        .digit-input:disabled {
+            background-color: #f8fafc; border-color: #e2e8f0; color: #94a3b8;
+        }
+        
         /* 進位/退位格 */
         .carry-input {
-            width: 100%;
-            height: 30px;
-            text-align: center;
-            font-size: 0.9rem;
-            color: #ef4444; /* 紅色字 */
-            background-color: #f8fafc;
-            border: 1px dashed #cbd5e1;
-            border-radius: 4px;
+            width: 100%; height: 32px;
+            text-align: center; font-size: 1rem; font-weight: bold;
+            color: #ef4444; background-color: #fff1f2;
+            border: 1px dashed #fda4af; border-radius: 4px;
         }
+        
         .calc-line {
-            height: 4px;
-            background-color: #1e293b;
-            border-radius: 2px;
-            margin-top: 4px;
-            margin-bottom: 4px;
+            height: 4px; background-color: #334155; border-radius: 2px;
+            margin-top: 4px; margin-bottom: 4px;
         }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -71,389 +60,506 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- Icon ---
+        // --- Icons ---
         const Icon = {
-            Clock: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            Clock: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            Calc: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>,
             Check: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>,
-            Refresh: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><polyline points="21 3 21 8 16 8"/></svg>,
-            ArrowRight: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            Brain: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
+            Star: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
         };
 
-        // --- 直式輸入組件 (核心) ---
-        const VerticalGrid = ({ n1, n2, op, onComplete }) => {
-            // 將數字拆解為陣列 (補滿 4 位數以便對齊)
+        // --- 組件：直式加減 (VerticalAddSub) ---
+        const VerticalAddSub = ({ n1, n2, op, onComplete }) => {
             const digits1 = n1.toString().padStart(4, ' ').split('');
             const digits2 = n2.toString().padStart(4, ' ').split('');
-            
-            // 用戶輸入狀態：4個主答案格，4個進位/退位格
-            const [inputs, setInputs] = useState(['', '', '', '']); 
+            const [inputs, setInputs] = useState(['', '', '', '']);
             const [carries, setCarries] = useState(['', '', '', '']);
             const [errorMsg, setErrorMsg] = useState('');
-
             const correctAns = op === '+' ? n1 + n2 : n1 - n2;
             const correctDigits = correctAns.toString().padStart(4, ' ').split('');
 
-            const handleInputChange = (index, value, type) => {
-                if (type === 'main') {
-                    const newInputs = [...inputs];
-                    newInputs[index] = value.slice(-1); // 只留最後一位
-                    setInputs(newInputs);
-                } else {
-                    const newCarries = [...carries];
-                    newCarries[index] = value.slice(-2); // 允許兩位 (例如退位後剩 12)
-                    setCarries(newCarries);
-                }
-                setErrorMsg('');
-            };
-
             const checkAnswer = () => {
-                // 檢查邏輯：將 inputs 組合起來，parseInt 後是否等於答案
-                // 注意：這裡我們允許前面的空格是空的
-                let userNumStr = "";
-                inputs.forEach(d => {
-                    if(d === '') userNumStr += " "; // 保持空格位置
-                    else userNumStr += d;
-                });
-                
-                const userNum = parseInt(userNumStr.replace(/\s/g, '')); // 去掉空格轉數字
-                
-                if (userNum === correctAns) {
+                let userNumStr = inputs.map(d => d === '' ? ' ' : d).join('');
+                if (parseInt(userNumStr.replace(/\s/g, '')) === correctAns) {
                     onComplete(correctAns);
                 } else {
-                    setErrorMsg('答案不對喔！請檢查進位或退位。');
+                    setErrorMsg('小心！直式計算有誤，請檢查進位/退位。');
                 }
             };
 
             return (
-                <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm mx-auto max-w-sm animate-in zoom-in-95 duration-300">
+                <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm max-w-sm mx-auto animate-in zoom-in-95">
                     <div className="grid grid-cols-5 gap-2 font-mono">
-                        {/* 0. 進位/退位提示行 (Row 0) */}
                         <div className="col-span-1"></div>
-                        {carries.map((val, i) => (
-                            <input key={`c-${i}`} 
-                                type="text"
-                                className="carry-input"
-                                placeholder="."
-                                value={val}
-                                onChange={(e) => handleInputChange(i, e.target.value, 'carry')}
-                            />
-                        ))}
-
-                        {/* 1. 第一個數字 (Row 1) */}
+                        {carries.map((v, i) => <input key={i} className="carry-input" value={v} placeholder="." onChange={e=>setCarries(p=>{const n=[...p];n[i]=e.target.value.slice(-2);return n;})} />)}
                         <div className="col-span-1"></div>
-                        {digits1.map((d, i) => (
-                            <div key={`d1-${i}`} className="h-12 flex items-center justify-center text-3xl font-black text-slate-700">
-                                {d}
-                            </div>
-                        ))}
-
-                        {/* 2. 運算符 + 第二個數字 (Row 2) */}
-                        <div className="col-span-1 flex items-center justify-center text-3xl font-black text-slate-500">{op}</div>
-                        {digits2.map((d, i) => (
-                            <div key={`d2-${i}`} className="h-12 flex items-center justify-center text-3xl font-black text-slate-700">
-                                {d}
-                            </div>
-                        ))}
-
-                        {/* 3. 分隔線 */}
+                        {digits1.map((d, i) => <div key={i} className="h-10 flex items-center justify-center text-3xl font-black text-slate-700">{d}</div>)}
+                        <div className="col-span-1 text-3xl font-black text-slate-400">{op}</div>
+                        {digits2.map((d, i) => <div key={i} className="h-10 flex items-center justify-center text-3xl font-black text-slate-700">{d}</div>)}
                         <div className="col-span-5 calc-line"></div>
-
-                        {/* 4. 答案輸入行 (Row 3) - 這裡需要 Jasper 填寫 */}
                         <div className="col-span-1"></div>
-                        {inputs.map((val, i) => (
-                            <div key={`in-${i}`} className="h-16">
-                                <input 
-                                    type="number" 
-                                    className={`digit-input ${val !== '' && correctDigits[i] !== ' ' && parseInt(val) !== parseInt(correctDigits[i]) ? 'border-red-400 bg-red-50 text-red-600' : ''}`}
-                                    value={val}
-                                    placeholder={correctDigits[i] === ' ' ? '' : '?'}
-                                    disabled={correctDigits[i] === ' '} // 不需要填的位置鎖住
-                                    onChange={(e) => handleInputChange(i, e.target.value, 'main')}
-                                />
-                            </div>
+                        {inputs.map((v, i) => (
+                            <input key={i} type="number" className={`digit-input ${v!=='' && correctDigits[i]!==' ' && v!==correctDigits[i] ? 'bg-red-50 border-red-300 text-red-600' : ''}`} value={v} disabled={correctDigits[i]===' '} onChange={e => {setInputs(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />
                         ))}
                     </div>
-
-                    {errorMsg && (
-                        <div className="mt-4 text-center text-rose-500 font-bold bg-rose-50 p-2 rounded-lg text-sm">
-                            {errorMsg}
-                        </div>
-                    )}
-
-                    <button onClick={checkAnswer} className="mt-6 w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg active:scale-95 transition-all">
-                        檢查直式
-                    </button>
-                    <p className="text-center text-xs text-slate-400 mt-2">提示：上方的虛線格可用來寫進位或退位</p>
+                    {errorMsg && <div className="mt-3 text-center text-rose-500 font-bold text-sm bg-rose-50 p-2 rounded">{errorMsg}</div>}
+                    <button onClick={checkAnswer} className="mt-5 w-full bg-indigo-600 text-white py-3 rounded-xl font-black shadow-md active:scale-95 transition-all">檢查答案</button>
                 </div>
             );
         };
 
-        // --- 主程式邏輯 ---
+        // --- 組件：直式乘法 (VerticalMulti) ---
+        const VerticalMulti = ({ n1, n2, onComplete }) => {
+            const digits1 = n1.toString().padStart(3, ' ').split('');
+            const [inputs, setInputs] = useState(['', '', '', '']);
+            const [carries, setCarries] = useState(['', '', '']);
+            const [errorMsg, setErrorMsg] = useState('');
+            const correctAns = n1 * n2;
+            const correctDigits = correctAns.toString().padStart(4, ' ').split('');
+
+            const checkAnswer = () => {
+                let userNumStr = inputs.map(d => d === '' ? ' ' : d).join('');
+                if (parseInt(userNumStr.replace(/\s/g, '')) === correctAns) {
+                    onComplete(correctAns);
+                } else {
+                    setErrorMsg('乘法算錯囉！記得把進位的小數字寫在上面。');
+                }
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm max-w-sm mx-auto animate-in zoom-in-95">
+                    <div className="grid grid-cols-5 gap-2 font-mono">
+                        <div className="col-span-2"></div>
+                        {carries.map((v, i) => <input key={i} className="carry-input" placeholder="進" value={v} onChange={e=>setCarries(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;})} />)}
+                        <div className="col-span-2"></div>
+                        {digits1.map((d, i) => <div key={i} className="h-10 flex items-center justify-center text-3xl font-black text-slate-700">{d}</div>)}
+                        <div className="col-span-1 text-right text-3xl font-black text-slate-400 mr-2">×</div>
+                        <div className="col-span-3"></div>
+                        <div className="col-span-1 h-10 flex items-center justify-center text-3xl font-black text-slate-700">{n2}</div>
+                        <div className="col-span-5 calc-line"></div>
+                        <div className="col-span-1"></div>
+                        {inputs.map((v, i) => (
+                            <input key={i} type="number" className={`digit-input ${v!=='' && correctDigits[i]!==' ' && v!==correctDigits[i] ? 'bg-red-50 border-red-300 text-red-600' : ''}`} value={v} disabled={correctDigits[i]===' '} placeholder={correctDigits[i]===' '?'':'?'} onChange={e => {setInputs(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />
+                        ))}
+                    </div>
+                    {errorMsg && <div className="mt-3 text-center text-rose-500 font-bold text-sm bg-rose-50 p-2 rounded">{errorMsg}</div>}
+                    <button onClick={checkAnswer} className="mt-5 w-full bg-indigo-600 text-white py-3 rounded-xl font-black shadow-md active:scale-95 transition-all">檢查答案</button>
+                    <p className="text-xs text-center text-slate-400 mt-2">提示：進位的小數字寫在最上面</p>
+                </div>
+            );
+        };
+
+        // --- 組件：時鐘面 ---
+        const ClockFace = ({ h, m, interactive, onTimeChange }) => {
+            const hourAngle = (h * 30) + (m * 0.5);
+            const minuteAngle = m * 6;
+            const handleHour = () => interactive && onTimeChange(h===12?1:h+1, m);
+            const handleMin = () => interactive && onTimeChange(h, m===0?30:0);
+
+            return (
+                <div className="flex flex-col items-center">
+                    <svg width="180" height="180" viewBox="0 0 200 200" className="drop-shadow-lg my-4">
+                        <circle cx="100" cy="100" r="95" fill="white" stroke="#334155" strokeWidth="6" />
+                        {[...Array(12)].map((_, i) => (
+                            <text key={i} x={100 + 75 * Math.sin((i+1)*Math.PI/6)} y={105 - 75 * Math.cos((i+1)*Math.PI/6)} textAnchor="middle" className="font-bold text-lg font-mono" fill="#64748b">{i+1}</text>
+                        ))}
+                        <line x1="100" y1="100" x2={100 + 50 * Math.sin(hourAngle * Math.PI / 180)} y2={100 - 50 * Math.cos(hourAngle * Math.PI / 180)} stroke="#1e293b" strokeWidth="6" strokeLinecap="round" />
+                        <line x1="100" y1="100" x2={100 + 75 * Math.sin(minuteAngle * Math.PI / 180)} y2={100 - 75 * Math.cos(minuteAngle * Math.PI / 180)} stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+                        <circle cx="100" cy="100" r="5" fill="#1e293b" />
+                    </svg>
+                    {interactive && (
+                        <div className="flex gap-2">
+                            <button onClick={handleHour} className="px-4 py-2 bg-slate-800 text-white rounded-lg font-bold shadow text-sm">調時針</button>
+                            <button onClick={handleMin} className="px-4 py-2 bg-slate-800 text-white rounded-lg font-bold shadow text-sm">調分針</button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- 組件：幾何圖形 ---
+        const GeometryView = ({ type }) => (
+            <div className="flex justify-center my-4">
+                 <svg width="200" height="150" viewBox="0 0 200 150">
+                    {type === 'trapezoid' && (
+                        <>
+                            <path d="M40 130 L160 130 L140 20 L60 20 Z" fill="none" stroke="#334155" strokeWidth="4" />
+                            <path d="M60 20 L100 130 L140 20 Z" fill="#e0e7ff" stroke="#4f46e5" strokeWidth="3" strokeDasharray="5,5" />
+                        </>
+                    )}
+                    {type === 'triangle' && (
+                        <path d="M50 130 L150 130 L50 30 Z" fill="none" stroke="#334155" strokeWidth="4" />
+                    )}
+                </svg>
+            </div>
+        );
+
+        // --- 完整 20 題題庫 ---
+        const QUESTIONS_DATA = [
+            // --- 混合計算 (1-5) ---
+            {
+                id: 1, title: '運算次序 (括號減法)', text: '50 - (15 + 9) = ?',
+                steps: [
+                    { type: 'LOGIC', text: '有括弧，第一步先算？', options: ['50 - 15', '15 + 9', '50 + 9'], ans: '15 + 9' },
+                    { type: 'ADD', n1: 15, n2: 9, hint: '直式計算 15 + 9' },
+                    { type: 'SUB', n1: 50, n2: 24, hint: '用 50 減去剛才的答案 (24)' }
+                ]
+            },
+            {
+                id: 2, title: '運算次序 (乘法與括號)', text: '6 × (42 - 18) = ?',
+                steps: [
+                    { type: 'LOGIC', text: '括弧內的減法要先算。算式是？', options: ['6 × 42', '42 - 18', '6 × 18'], ans: '42 - 18' },
+                    { type: 'SUB', n1: 42, n2: 18, hint: '直式計算括弧內' },
+                    { type: 'MULTI', n1: 24, n2: 6, hint: '答案 24 再乘以 6' }
+                ]
+            },
+            {
+                id: 3, title: '運算次序 (先乘後加)', text: '12 + 5 × 6 = ?',
+                steps: [
+                    { type: 'LOGIC', text: '沒有括弧，要先乘除後加減。第一步？', options: ['12 + 5', '5 × 6'], ans: '5 × 6' },
+                    { type: 'INPUT_CHECK', label: '心算 5 × 6 = ?', correct: '30' },
+                    { type: 'ADD', n1: 12, n2: 30, hint: '最後算 12 加 30' }
+                ]
+            },
+            {
+                id: 4, title: '連續減法', text: '500 - 128 - 75 = ?',
+                steps: [
+                    { type: 'LOGIC', text: '沒有括弧，從左到右算。第一步？', options: ['500 - 128', '128 - 75'], ans: '500 - 128' },
+                    { type: 'SUB', n1: 500, n2: 128, hint: '直式計算 500 - 128 (小心借位)' },
+                    { type: 'SUB', n1: 372, n2: 75, hint: '用 372 減去 75' }
+                ]
+            },
+            {
+                id: 5, title: '混合應用', text: '8 × (37 - 11) = ?',
+                steps: [
+                    { type: 'LOGIC', text: '先算括弧。算式是？', options: ['37 - 11', '8 × 37'], ans: '37 - 11' },
+                    { type: 'SUB', n1: 37, n2: 11, hint: '計算括弧內' },
+                    { type: 'MULTI', n1: 26, n2: 8, hint: '用 26 乘以 8' }
+                ]
+            },
+            // --- 直式計算 (6-8) ---
+            {
+                id: 6, title: '四位數進位', text: '2456 + 3789 = ?',
+                steps: [
+                    { type: 'LOGIC', text: '這是純加法，請直接用直式。', options: ['開始計算'], ans: '開始計算' },
+                    { type: 'ADD', n1: 2456, n2: 3789, hint: '小心連續進位' }
+                ]
+            },
+            {
+                id: 7, title: '四位數借位 (陷阱題)', text: '4000 - 1234 = ?',
+                steps: [
+                    { type: 'LOGIC', text: '被減數有很多 0，要特別小心！', options: ['開始計算'], ans: '開始計算' },
+                    { type: 'SUB', n1: 4000, n2: 1234, hint: '0 不夠減，要向前一位借' }
+                ]
+            },
+            {
+                id: 8, title: '連續混合運算', text: '1250 + 850 - 600 = ?',
+                steps: [
+                    { type: 'LOGIC', text: '先加後減。第一步？', options: ['1250 + 850', '850 - 600'], ans: '1250 + 850' },
+                    { type: 'ADD', n1: 1250, n2: 850, hint: '計算加法' },
+                    { type: 'SUB', n1: 2100, n2: 600, hint: '用 2100 減 600' }
+                ]
+            },
+            // --- 時間 (9-11) ---
+            {
+                id: 9, title: '24小時制 (PM)', text: '下午 9:20 用 24 小時制表示。',
+                steps: [
+                    { type: 'LOGIC', text: '下午 (PM) 的小時要怎麼辦？', options: ['加 12', '不變'], ans: '加 12' },
+                    { type: 'INPUT_CHECK', label: '9 + 12 = ?', correct: '21' },
+                    { type: 'INPUT_CHECK', label: '完整時間 (如 21:20)', correct: '21:20' }
+                ]
+            },
+            {
+                id: 10, title: '24小時制 (轉12)', text: '15:45 是上午還是下午？',
+                steps: [
+                    { type: 'LOGIC', text: '15 大於 12，所以是？', options: ['下午 (PM)', '上午 (AM)'], ans: '下午 (PM)' },
+                    { type: 'INPUT_CHECK', label: '15 - 12 = ?', correct: '3' },
+                    { type: 'INPUT_CHECK', label: '完整寫法 (如 3:45pm)', correct: '3:45pm' }
+                ]
+            },
+            {
+                id: 11, title: '撥鐘算時間', text: '現在 14:00，兩小時半後是幾點？',
+                steps: [
+                    { type: 'LOGIC', text: '兩小時半 = 2小時 30分。14:00 + 2小時 = ?', options: ['16:00', '15:30'], ans: '16:00' },
+                    { type: 'CLOCK_INTERACTIVE', targetH: 4, targetM: 30, hint: '請撥到 16:30 (4:30)' }
+                ]
+            },
+            // --- 圖形 (12-14) ---
+            {
+                id: 12, title: '圖形與角', isGeometry: true, geoType: 'trapezoid', text: '觀察梯形內的三角形。',
+                steps: [
+                    { type: 'LOGIC', text: '三角形內有幾個銳角？', options: ['2個', '3個'], ans: '3個' },
+                    { type: 'LOGIC', text: '梯形(不含三角形)有幾個鈍角？', options: ['1個', '2個'], ans: '2個' }
+                ]
+            },
+            {
+                id: 13, title: '辨別直角', isGeometry: true, geoType: 'triangle', text: '這是一個直角三角形。',
+                steps: [
+                    { type: 'LOGIC', text: '圖中有多少個直角？', options: ['1個', '0個', '2個'], ans: '1個' },
+                    { type: 'LOGIC', text: '最大的那個角是？', options: ['直角', '銳角'], ans: '直角' }
+                ]
+            },
+            {
+                id: 14, title: '角的大小', text: '鈍角和直角，哪個比較大？',
+                steps: [
+                    { type: 'LOGIC', text: '直角是90度，鈍角大於90度。所以？', options: ['鈍角較大', '直角較大'], ans: '鈍角較大' },
+                    { type: 'LOGIC', text: '銳角和直角，哪個比較細？', options: ['銳角', '直角'], ans: '銳角' }
+                ]
+            },
+            // --- 文字題 (15-20) ---
+            {
+                id: 15, title: '文字題：倍數', text: '妹妹有 $15，姐姐的錢是妹妹的 5 倍。姐姐有多少錢？',
+                steps: [
+                    { type: 'LOGIC', text: '「5 倍」表示要用什麼運算？', options: ['乘法', '加法'], ans: '乘法' },
+                    { type: 'MULTI', n1: 15, n2: 5, hint: '直式計算 15 × 5' }
+                ]
+            },
+            {
+                id: 16, title: '文字題：找贖', text: '我有 $100，買了 4 本 $22 的書，還剩多少錢？',
+                steps: [
+                    { type: 'LOGIC', text: 'Step 1: 先算 4 本書總共多少錢', options: ['22 × 4', '100 - 22'], ans: '22 × 4' },
+                    { type: 'MULTI', n1: 22, n2: 4, hint: '計算總價' },
+                    { type: 'LOGIC', text: 'Step 2: 用 $100 減去總價 $88', options: ['100 - 88', '88 - 100'], ans: '100 - 88' },
+                    { type: 'SUB', n1: 100, n2: 88, hint: '計算找贖 (小心借位)' }
+                ]
+            },
+            {
+                id: 17, title: '文字題：比較', text: '書 A 售 $45，書 B 比書 A 便宜 $12。買書 B 要付多少錢？',
+                steps: [
+                    { type: 'LOGIC', text: '便宜 $12 代表書 B 價錢較少。', options: ['45 - 12', '45 + 12'], ans: '45 - 12' },
+                    { type: 'SUB', n1: 45, n2: 12, hint: '計算書 B 的價錢' }
+                ]
+            },
+            {
+                id: 18, title: '文字題：共有 (兩步)', text: '店裡有 500 個蘋果，上午賣了 120 個，下午賣了 150 個。還剩多少個？',
+                steps: [
+                    { type: 'LOGIC', text: '方法一：先算總共賣了多少個。', options: ['120 + 150', '500 - 120'], ans: '120 + 150' },
+                    { type: 'ADD', n1: 120, n2: 150, hint: '計算賣出的總數' },
+                    { type: 'SUB', n1: 500, n2: 270, hint: '用原本數量減去賣出的' }
+                ]
+            },
+            {
+                id: 19, title: '文字題：每人付款', text: '3 個同學去野餐，每人要付 $35。他們共付了多少元？',
+                steps: [
+                    { type: 'LOGIC', text: '「每人」付 $35，共有 3 人。', options: ['35 + 3', '35 × 3'], ans: '35 × 3' },
+                    { type: 'MULTI', n1: 35, n2: 3, hint: '直式計算總金額' }
+                ]
+            },
+            {
+                id: 20, title: '文字題：比較 (混合)', text: '哥哥有 20 元，弟弟有 10 元。買一個 $45 的玩具，他們合資還欠多少？',
+                steps: [
+                    { type: 'LOGIC', text: 'Step 1: 先算兩人共有多少錢', options: ['20 + 10', '20 - 10'], ans: '20 + 10' },
+                    { type: 'INPUT_CHECK', label: '20 + 10 = ?', correct: '30' },
+                    { type: 'LOGIC', text: 'Step 2: 玩具 $45，他們有 $30，欠多少？', options: ['45 - 30', '30 + 45'], ans: '45 - 30' },
+                    { type: 'SUB', n1: 45, n2: 30, hint: '計算差額' }
+                ]
+            }
+        ];
+
         const App = () => {
-            const [gameState, setGameState] = useState('menu'); // menu, playing, result
-            const [currentQ, setCurrentQ] = useState(null);
-            const [stageIndex, setStageIndex] = useState(0); // 題目內部的階段 (邏輯 -> 直式1 -> 直式2)
+            const [mode, setMode] = useState('MENU');
             const [qIndex, setQIndex] = useState(0);
+            const [stepIndex, setStepIndex] = useState(0);
             const [score, setScore] = useState(0);
             const [history, setHistory] = useState([]);
             const [timer, setTimer] = useState(0);
             const timerRef = useRef(null);
 
-            const TOTAL_QUESTIONS = 5; // 示範用 5 題
+            const currentQ = QUESTIONS_DATA[qIndex];
+            const currentStep = currentQ.steps[stepIndex];
+            
+            // 計算進度
+            const progress = ((qIndex) / QUESTIONS_DATA.length) * 100;
 
-            // 計時器邏輯
             useEffect(() => {
-                if (gameState === 'playing') {
+                if (mode === 'GAME') {
                     timerRef.current = setInterval(() => setTimer(t => t + 1), 1000);
                 } else {
                     clearInterval(timerRef.current);
                 }
                 return () => clearInterval(timerRef.current);
-            }, [gameState]);
+            }, [mode]);
 
-            // --- 題目生成器 (核心重構) ---
-            const generateQuestion = () => {
-                const types = ['BRACKET_MIXED', 'CONTINUOUS_OP'];
-                const type = types[Math.floor(Math.random() * types.length)];
-                
-                let qData = {
-                    id: Date.now(),
-                    type: type,
-                    text: '',
-                    stages: [] // 這裡存放題目的每一個「步驟」
-                };
+            const handleLogicChoice = (opt) => {
+                if (opt === currentStep.ans) nextStep(true);
+                else {
+                    recordMistake('邏輯選擇錯誤', `選了 ${opt}，正確應為 ${currentStep.ans}`);
+                    alert('邏輯選錯囉！再想一想題目。');
+                }
+            };
 
-                if (type === 'BRACKET_MIXED') {
-                    // 題型：35 - (13 + 8) 或 (20 - 5) * 4 (只做加減示範)
-                    // 設定： A - (B + C)
-                    const B = Math.floor(Math.random() * 20) + 10;
-                    const C = Math.floor(Math.random() * 9) + 1;
-                    const sumBC = B + C;
-                    const A = sumBC + Math.floor(Math.random() * 20) + 10; // 確保 A > B+C
+            const handleCalcComplete = (val) => nextStep(true);
 
-                    qData.text = `${A} - (${B} + ${C}) = ?`;
-                    
-                    // Stage 1: 邏輯選擇
-                    qData.stages.push({
-                        type: 'LOGIC',
-                        question: '這題要先計算哪部分？',
-                        options: [`${A} - ${B}`, `${B} + ${C}`, `${A} + ${C}`],
-                        correctOpt: `${B} + ${C}`
-                    });
+            const handleInputCheck = (val) => {
+                if (val.trim() === currentStep.correct) nextStep(true);
+                else {
+                    recordMistake('填空錯誤', `填了 ${val}，正確應為 ${currentStep.correct}`);
+                    alert('答案不對喔！');
+                }
+            };
 
-                    // Stage 2: 直式計算 (括弧內)
-                    qData.stages.push({
-                        type: 'VERTICAL',
-                        hint: `先計算括弧內的：${B} + ${C}`,
-                        n1: B, n2: C, op: '+', result: sumBC
-                    });
+            const handleClockInteractive = (h, m) => {
+                let targetH = currentStep.targetH;
+                // 寬容判斷
+                if (Math.abs(h - targetH) % 12 === 0 || (targetH > 12 && h === targetH - 12)) nextStep(true);
+                else alert('時針位置好像不太對？');
+            };
 
-                    // Stage 3: 直式計算 (括弧外)
-                    qData.stages.push({
-                        type: 'VERTICAL',
-                        hint: `現在用 ${A} 減去剛才的答案 (${sumBC})`,
-                        n1: A, n2: sumBC, op: '-', result: A - sumBC
-                    });
+            const recordMistake = (type, detail) => {
+                // 避免重複記錄同一題
+                if (!history.some(h => h.qIndex === qIndex + 1)) {
+                    setHistory(prev => [...prev, { qIndex: qIndex + 1, title: currentQ.title, type, detail }]);
+                }
+            };
 
+            const nextStep = (isCorrect) => {
+                if (stepIndex < currentQ.steps.length - 1) {
+                    setStepIndex(p => p + 1);
                 } else {
-                    // 題型：2205 + 2154 - 423 (連續運算)
-                    // 拆解： (A + B) - C
-                    const A = Math.floor(Math.random() * 2000) + 1000;
-                    const B = Math.floor(Math.random() * 2000) + 500;
-                    const sumAB = A + B;
-                    const C = Math.floor(Math.random() * 500) + 100;
-
-                    qData.text = `${A} + ${B} - ${C} = ?`;
-
-                    // Stage 1: 直式計算 (前兩數)
-                    qData.stages.push({
-                        type: 'VERTICAL',
-                        hint: `第一步：先計算前面兩個數相加`,
-                        n1: A, n2: B, op: '+', result: sumAB
-                    });
-
-                    // Stage 2: 直式計算 (減第三數)
-                    qData.stages.push({
-                        type: 'VERTICAL',
-                        hint: `第二步：用剛才的答案 (${sumAB}) 減去 ${C}`,
-                        n1: sumAB, n2: C, op: '-', result: sumAB - C
-                    });
-                }
-
-                return qData;
-            };
-
-            const startGame = () => {
-                setScore(0);
-                setHistory([]);
-                setTimer(0);
-                setQIndex(0);
-                loadNextQuestion();
-                setGameState('playing');
-            };
-
-            const loadNextQuestion = () => {
-                const newQ = generateQuestion();
-                setCurrentQ(newQ);
-                setStageIndex(0);
-            };
-
-            const handleStageComplete = (userAnswer, isCorrectLogic = true) => {
-                // 記錄歷程
-                if (!isCorrectLogic) {
-                    setHistory([...history, { 
-                        text: currentQ.text, 
-                        errorType: '邏輯錯誤', 
-                        detail: '沒有先算括弧' 
-                    }]);
-                    return; // 邏輯題錯了不前進
-                }
-
-                // 如果是最後一個 Stage
-                if (stageIndex >= currentQ.stages.length - 1) {
                     setScore(s => s + 1);
-                    if (qIndex < TOTAL_QUESTIONS - 1) {
+                    if (qIndex < QUESTIONS_DATA.length - 1) {
                         setQIndex(q => q + 1);
-                        loadNextQuestion();
+                        setStepIndex(0);
                     } else {
-                        setGameState('result');
+                        setMode('RESULT');
                     }
-                } else {
-                    // 進入下一個 Stage
-                    setStageIndex(prev => prev + 1);
                 }
             };
 
-            // --- 渲染 ---
-
-            if (gameState === 'menu') {
-                return (
-                    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-                        <div className="bg-white p-10 rounded-[2.5rem] shadow-xl max-w-md w-full text-center border border-slate-100">
-                            <h1 className="text-3xl font-black text-slate-800 mb-2">Jasper 數學特訓</h1>
-                            <p className="text-indigo-500 font-bold mb-8">分步直式挑戰 V2.0</p>
-                            <div className="bg-indigo-50 p-6 rounded-2xl text-left text-slate-600 mb-8 space-y-3">
-                                <p>🎯 <span className="font-bold text-slate-800">目標：</span> 不用心算，用直式一步步算。</p>
-                                <p>✍️ <span className="font-bold text-slate-800">工具：</span> 使用上方的小格子記下進位/退位。</p>
+            const renderStep = () => {
+                switch(currentStep.type) {
+                    case 'LOGIC':
+                        return (
+                            <div className="grid gap-4 animate-in slide-in-from-right">
+                                <div className="bg-indigo-50 p-4 rounded-xl text-indigo-800 font-bold flex gap-2"><Icon.Brain/> {currentStep.text}</div>
+                                {currentStep.options.map((o, i) => (
+                                    <button key={i} onClick={() => handleLogicChoice(o)} className="p-4 border-2 border-slate-200 rounded-xl font-bold hover:bg-indigo-100 hover:border-indigo-400 active:scale-95 transition-all text-left">{o}</button>
+                                ))}
                             </div>
-                            <button onClick={startGame} className="w-full bg-indigo-600 text-white text-xl font-black py-4 rounded-2xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">
-                                開始挑戰
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (gameState === 'result') {
-                return (
-                    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-                        <div className="bg-white p-10 rounded-[2.5rem] shadow-xl max-w-lg w-full text-center border border-slate-100">
-                            <h2 className="text-4xl font-black text-slate-800 mb-4">挑戰完成！</h2>
-                            
-                            <div className="flex justify-center gap-6 mb-8">
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                                    <div className="text-xs font-black text-slate-400 uppercase">總得分</div>
-                                    <div className="text-4xl font-black text-indigo-600">{Math.round((score/TOTAL_QUESTIONS)*100)}%</div>
-                                </div>
-                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                                    <div className="text-xs font-black text-slate-400 uppercase">總時間</div>
-                                    <div className="text-4xl font-black text-slate-800">{timer}s</div>
-                                </div>
+                        );
+                    case 'ADD':
+                    case 'SUB':
+                        return (
+                            <div className="animate-in zoom-in-95">
+                                <div className="bg-emerald-50 p-3 rounded-xl text-emerald-800 font-bold mb-4 text-center text-sm"><Icon.Calc/> {currentStep.hint}</div>
+                                <VerticalAddSub n1={currentStep.n1} n2={currentStep.n2} op={currentStep.type==='ADD'?'+':'-'} onComplete={handleCalcComplete} />
                             </div>
+                        );
+                    case 'MULTI':
+                        return (
+                            <div className="animate-in zoom-in-95">
+                                <div className="bg-emerald-50 p-3 rounded-xl text-emerald-800 font-bold mb-4 text-center text-sm"><Icon.Calc/> {currentStep.hint}</div>
+                                <VerticalMulti n1={currentStep.n1} n2={currentStep.n2} onComplete={handleCalcComplete} />
+                            </div>
+                        );
+                    case 'INPUT_CHECK':
+                        return (
+                            <div className="flex flex-col gap-4 animate-in slide-in-from-right">
+                                <label className="font-bold text-slate-700">{currentStep.label}</label>
+                                <input type="text" className="p-4 border-2 border-slate-300 rounded-xl text-center text-2xl font-black" placeholder="輸入答案" onKeyDown={(e)=>{if(e.key==='Enter') handleInputCheck(e.target.value)}} />
+                                <button className="bg-slate-800 text-white p-4 rounded-xl font-black" onClick={(e)=>handleInputCheck(e.target.previousSibling.value)}>確定</button>
+                            </div>
+                        );
+                    case 'CLOCK_INTERACTIVE':
+                        return (
+                            <div className="animate-in zoom-in-95">
+                                <div className="bg-yellow-50 p-3 rounded-xl text-yellow-800 font-bold mb-4 text-center text-sm"><Icon.Clock/> {currentStep.hint}</div>
+                                <ClockFace h={14} m={0} interactive={true} onTimeChange={(h,m)=>handleClockInteractive(h,m)} />
+                            </div>
+                        );
+                    default: return null;
+                }
+            };
 
-                            {history.length > 0 ? (
-                                <div className="text-left mb-8 max-h-60 overflow-y-auto custom-scrollbar bg-rose-50 p-4 rounded-2xl border border-rose-100">
-                                    <h3 className="font-bold text-rose-600 mb-2">錯題回顧：</h3>
-                                    {history.map((h, i) => (
-                                        <div key={i} className="mb-2 pb-2 border-b border-rose-200 last:border-0">
-                                            <div className="font-mono font-bold text-slate-700">{h.text}</div>
-                                            <div className="text-sm text-rose-500">原因：{h.detail}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="bg-green-50 p-6 rounded-2xl border border-green-200 text-green-700 font-bold mb-8">
-                                    太棒了！全對！記得保持寫直式的好習慣！🌟
-                                </div>
-                            )}
-
-                            <button onClick={startGame} className="w-full flex items-center justify-center gap-2 bg-slate-800 text-white text-xl font-black py-4 rounded-2xl shadow-lg hover:bg-slate-700 active:scale-95 transition-all">
-                                <Icon.Refresh /> 再試一次
-                            </button>
+            if (mode === 'MENU') return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl text-center border border-slate-100">
+                        <div className="inline-block p-4 bg-indigo-100 rounded-full text-indigo-600 mb-6"><Icon.Brain/></div>
+                        <h1 className="text-3xl font-black text-slate-800 mb-2">Jasper 數學模擬試卷</h1>
+                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">V4.0 完整版 (20題)</p>
+                        <div className="text-left bg-slate-50 p-6 rounded-2xl mb-8 space-y-3 text-slate-600 font-bold text-sm">
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 混合計算 (括號、運算次序)</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 四位數直式 (進位、借位)</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 時間與時鐘</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 圖形與角</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 綜合文字題</div>
                         </div>
+                        <button onClick={() => { setMode('GAME'); setScore(0); setHistory([]); setQIndex(0); setStepIndex(0); }} className="w-full bg-indigo-600 text-white text-xl font-black py-5 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all">開始挑戰</button>
                     </div>
-                );
-            }
+                </div>
+            );
 
-            // --- Playing State ---
-            const currentStage = currentQ.stages[stageIndex];
-            const progress = ((qIndex) / TOTAL_QUESTIONS) * 100;
+            if (mode === 'RESULT') return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl text-center border border-slate-100 animate-in zoom-in-95">
+                        <h2 className="text-4xl font-black text-slate-800 mb-6">考試結束！</h2>
+                        <div className="flex justify-center gap-4 mb-8">
+                            <div className="bg-slate-50 p-6 rounded-3xl w-1/2">
+                                <div className="text-xs font-black text-slate-400 uppercase mb-2">最終得分</div>
+                                <div className="text-4xl font-black text-indigo-600">{Math.round((score/QUESTIONS_DATA.length)*100)}%</div>
+                            </div>
+                            <div className="bg-slate-50 p-6 rounded-3xl w-1/2">
+                                <div className="text-xs font-black text-slate-400 uppercase mb-2">總耗時</div>
+                                <div className="text-4xl font-black text-slate-800">{Math.floor(timer/60)}<span className="text-sm">分</span>{timer%60}<span className="text-sm">秒</span></div>
+                            </div>
+                        </div>
+                        
+                        {history.length > 0 ? (
+                            <div className="text-left bg-rose-50 p-6 rounded-3xl mb-8 border border-rose-100 max-h-60 overflow-y-auto custom-scrollbar">
+                                <h3 className="font-bold text-rose-600 mb-4 flex items-center gap-2 text-lg">⚠️ 需要複習：</h3>
+                                {history.map((h, i) => (
+                                    <div key={i} className="mb-4 border-b border-rose-200 pb-3 last:border-0 last:pb-0">
+                                        <div className="font-black text-slate-800">Q{h.qIndex}: {h.title}</div>
+                                        <div className="text-sm font-bold text-rose-500 mt-1 bg-white px-2 py-1 rounded w-fit">{h.detail}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-green-50 p-8 rounded-3xl text-green-700 font-bold mb-8 border border-green-200 text-lg flex flex-col items-center gap-2">
+                                <Icon.Star />
+                                太棒了！20 題全對！
+                                <span className="text-sm text-green-600 font-normal">Jasper 你是數學小天才！</span>
+                            </div>
+                        )}
+                        
+                        <button onClick={() => { setMode('MENU'); }} className="w-full bg-slate-800 text-white text-xl font-black py-5 rounded-2xl shadow-xl active:scale-95 transition-all">返回主選單</button>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="min-h-screen p-4 md:p-8 max-w-2xl mx-auto">
-                    {/* Header */}
+                    {/* 頂部資訊列 */}
                     <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
-                            <Icon.Clock /> <span className="font-mono font-bold text-lg">{timer}s</span>
+                        <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-2xl font-bold text-slate-600 shadow-sm border border-slate-100">
+                             <span className="text-xs uppercase text-slate-400">Question</span>
+                             <span className="text-xl text-slate-800">{qIndex + 1} <span className="text-slate-300">/</span> {QUESTIONS_DATA.length}</span>
                         </div>
-                        <div className="font-black text-slate-400">
-                            Q {qIndex + 1} / {TOTAL_QUESTIONS}
+                         <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-2xl font-bold text-indigo-600 shadow-sm border border-slate-100">
+                             <Icon.Clock/> <span className="text-xl font-mono">{Math.floor(timer/60)}:{timer%60 < 10 ? '0'+timer%60 : timer%60}</span>
                         </div>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="h-2 bg-slate-200 rounded-full mb-8 overflow-hidden">
-                        <div className="h-full bg-indigo-500 transition-all duration-500" style={{width: `${progress}%`}}></div>
+                    {/* 進度條 */}
+                    <div className="w-full bg-slate-200 h-2 rounded-full mb-6 overflow-hidden">
+                        <div className="bg-indigo-500 h-full transition-all duration-500" style={{width: `${progress}%`}}></div>
                     </div>
 
-                    {/* Question Card */}
-                    <div className="bg-white rounded-[2.5rem] shadow-lg border border-slate-200 overflow-hidden">
-                        <div className="bg-slate-50 p-8 text-center border-b border-slate-100">
-                            <h2 className="text-3xl font-mono font-black text-slate-800">{currentQ.text}</h2>
+                    {/* 主卡片 */}
+                    <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden relative">
+                        <div className="bg-slate-50 p-8 border-b border-slate-100 text-center relative">
+                            <div className="absolute top-6 right-8 text-xs font-black text-slate-300 uppercase tracking-widest">Jasper Exam</div>
+                            <div className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-xs font-black uppercase tracking-widest mb-3">{currentQ.title}</div>
+                            <h2 className="text-3xl font-black text-slate-800 leading-snug">{currentQ.text}</h2>
+                            {currentQ.isGeometry && <GeometryView type={currentQ.geoType} />}
                         </div>
-
-                        <div className="p-8">
-                            {/* 階段提示 */}
-                            <div className="mb-6 flex items-center justify-center gap-2">
-                                <span className="bg-indigo-100 text-indigo-700 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                                    STEP {stageIndex + 1}
-                                </span>
-                                <span className="font-bold text-slate-600">
-                                    {currentStage.type === 'LOGIC' ? currentStage.question : currentStage.hint}
-                                </span>
+                        
+                        <div className="p-8 min-h-[350px] flex flex-col">
+                            <div className="text-center text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest flex items-center justify-center gap-2">
+                                Step {stepIndex + 1} of {currentQ.steps.length}
                             </div>
-
-                            {/* 內容區域：根據 Stage 類型切換 */}
-                            {currentStage.type === 'LOGIC' && (
-                                <div className="grid gap-4 max-w-sm mx-auto animate-in slide-in-from-right duration-300">
-                                    {currentStage.options.map((opt, i) => (
-                                        <button 
-                                            key={i}
-                                            onClick={() => {
-                                                if (opt === currentStage.correctOpt) {
-                                                    handleStageComplete(opt, true);
-                                                } else {
-                                                    handleStageComplete(opt, false);
-                                                    alert('不對喔！想一想運算順序，有括弧要先算？');
-                                                }
-                                            }}
-                                            className="p-5 border-2 border-slate-200 rounded-2xl text-xl font-bold text-slate-700 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-700 transition-all text-center"
-                                        >
-                                            {opt}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {currentStage.type === 'VERTICAL' && (
-                                <VerticalGrid 
-                                    key={`${currentQ.id}-s${stageIndex}`} // 確保切換步驟時重置 Grid
-                                    n1={currentStage.n1} 
-                                    n2={currentStage.n2} 
-                                    op={currentStage.op}
-                                    onComplete={() => handleStageComplete(null, true)}
-                                />
-                            )}
+                            {renderStep()}
                         </div>
                     </div>
                 </div>
