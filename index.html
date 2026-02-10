@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jasper 小三數學模擬試卷 (V4.0 完整版)</title>
+    <title>Jasper 小三數學模擬試卷 (V4.1 修復版)</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -21,7 +21,7 @@
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         
-        /* 直式輸入格優化 */
+        /* 直式輸入格 */
         .digit-input {
             width: 100%; height: 100%;
             text-align: center; font-family: 'Roboto Mono', monospace;
@@ -84,7 +84,7 @@
                 if (parseInt(userNumStr.replace(/\s/g, '')) === correctAns) {
                     onComplete(correctAns);
                 } else {
-                    setErrorMsg('小心！直式計算有誤，請檢查進位/退位。');
+                    setErrorMsg('計算錯誤！請檢查進位/退位或符號。');
                 }
             };
 
@@ -150,10 +150,12 @@
             );
         };
 
-        // --- 組件：時鐘面 ---
-        const ClockFace = ({ h, m, interactive, onTimeChange }) => {
+        // --- 組件：時鐘面 (修復版) ---
+        const ClockFace = ({ h, m, interactive, onTimeChange, onConfirm }) => {
             const hourAngle = (h * 30) + (m * 0.5);
             const minuteAngle = m * 6;
+            
+            // 修正：這裡只負責回傳新的時間，不負責檢查答案
             const handleHour = () => interactive && onTimeChange(h===12?1:h+1, m);
             const handleMin = () => interactive && onTimeChange(h, m===0?30:0);
 
@@ -169,9 +171,12 @@
                         <circle cx="100" cy="100" r="5" fill="#1e293b" />
                     </svg>
                     {interactive && (
-                        <div className="flex gap-2">
-                            <button onClick={handleHour} className="px-4 py-2 bg-slate-800 text-white rounded-lg font-bold shadow text-sm">調時針</button>
-                            <button onClick={handleMin} className="px-4 py-2 bg-slate-800 text-white rounded-lg font-bold shadow text-sm">調分針</button>
+                        <div className="flex flex-col w-full gap-3">
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={handleHour} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-bold shadow hover:bg-slate-300 active:scale-95 transition-all">調時針 (+1)</button>
+                                <button onClick={handleMin} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-bold shadow hover:bg-slate-300 active:scale-95 transition-all">調分針 (+30)</button>
+                            </div>
+                            <button onClick={onConfirm} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-black shadow-md active:scale-95 transition-all">確認時間</button>
                         </div>
                     )}
                 </div>
@@ -282,7 +287,8 @@
                 id: 11, title: '撥鐘算時間', text: '現在 14:00，兩小時半後是幾點？',
                 steps: [
                     { type: 'LOGIC', text: '兩小時半 = 2小時 30分。14:00 + 2小時 = ?', options: ['16:00', '15:30'], ans: '16:00' },
-                    { type: 'CLOCK_INTERACTIVE', targetH: 4, targetM: 30, hint: '請撥到 16:30 (4:30)' }
+                    // startH: 14 定義初始時鐘狀態
+                    { type: 'CLOCK_INTERACTIVE', startH: 14, startM: 0, targetH: 16, targetM: 30, hint: '請調整時鐘顯示 16:30' }
                 ]
             },
             // --- 圖形 (12-14) ---
@@ -365,11 +371,13 @@
             const [history, setHistory] = useState([]);
             const [timer, setTimer] = useState(0);
             const timerRef = useRef(null);
+            
+            // 修正時鐘：需要一個 State 來記錄"當前"的時鐘狀態，避免按一下就檢查
+            const [clockState, setClockState] = useState({h: 12, m: 0});
 
             const currentQ = QUESTIONS_DATA[qIndex];
             const currentStep = currentQ.steps[stepIndex];
             
-            // 計算進度
             const progress = ((qIndex) / QUESTIONS_DATA.length) * 100;
 
             useEffect(() => {
@@ -380,6 +388,16 @@
                 }
                 return () => clearInterval(timerRef.current);
             }, [mode]);
+
+            // 修正：進入時鐘題時，初始化時鐘時間
+            useEffect(() => {
+                if (mode === 'GAME' && currentStep.type === 'CLOCK_INTERACTIVE') {
+                    setClockState({
+                        h: currentStep.startH || 12, // 預設 12 或題目指定時間
+                        m: currentStep.startM || 0
+                    });
+                }
+            }, [qIndex, stepIndex, mode]);
 
             const handleLogicChoice = (opt) => {
                 if (opt === currentStep.ans) nextStep(true);
@@ -399,15 +417,31 @@
                 }
             };
 
-            const handleClockInteractive = (h, m) => {
+            // 修正：只更新時間，不檢查
+            const handleTimeUpdate = (newH, newM) => {
+                setClockState({h: newH, m: newM});
+            };
+
+            // 修正：新增確認按鈕的處理函數
+            const handleClockConfirm = () => {
                 let targetH = currentStep.targetH;
+                let h = clockState.h;
+                let m = clockState.m;
+                
                 // 寬容判斷
-                if (Math.abs(h - targetH) % 12 === 0 || (targetH > 12 && h === targetH - 12)) nextStep(true);
-                else alert('時針位置好像不太對？');
+                let isCorrect = false;
+                if (m === currentStep.targetM) {
+                    if (h === targetH) isCorrect = true;
+                    // 處理 12小時制 16:00 = 4:00
+                    if (h > 12 && h - 12 === targetH) isCorrect = true; 
+                    if (targetH > 12 && h === targetH - 12) isCorrect = true;
+                }
+
+                if (isCorrect) nextStep(true);
+                else alert(`時間好像不對喔？請調到 ${targetH}:${currentStep.targetM === 0 ? '00' : currentStep.targetM}`);
             };
 
             const recordMistake = (type, detail) => {
-                // 避免重複記錄同一題
                 if (!history.some(h => h.qIndex === qIndex + 1)) {
                     setHistory(prev => [...prev, { qIndex: qIndex + 1, title: currentQ.title, type, detail }]);
                 }
@@ -428,10 +462,13 @@
             };
 
             const renderStep = () => {
+                // Bug 修復重點：給每個 Step 組件加上 key，強制 React 在切換步驟時重新渲染，從而清空輸入框
+                const stepKey = `${qIndex}-${stepIndex}`; 
+
                 switch(currentStep.type) {
                     case 'LOGIC':
                         return (
-                            <div className="grid gap-4 animate-in slide-in-from-right">
+                            <div key={stepKey} className="grid gap-4 animate-in slide-in-from-right">
                                 <div className="bg-indigo-50 p-4 rounded-xl text-indigo-800 font-bold flex gap-2"><Icon.Brain/> {currentStep.text}</div>
                                 {currentStep.options.map((o, i) => (
                                     <button key={i} onClick={() => handleLogicChoice(o)} className="p-4 border-2 border-slate-200 rounded-xl font-bold hover:bg-indigo-100 hover:border-indigo-400 active:scale-95 transition-all text-left">{o}</button>
@@ -441,21 +478,21 @@
                     case 'ADD':
                     case 'SUB':
                         return (
-                            <div className="animate-in zoom-in-95">
+                            <div key={stepKey} className="animate-in zoom-in-95">
                                 <div className="bg-emerald-50 p-3 rounded-xl text-emerald-800 font-bold mb-4 text-center text-sm"><Icon.Calc/> {currentStep.hint}</div>
                                 <VerticalAddSub n1={currentStep.n1} n2={currentStep.n2} op={currentStep.type==='ADD'?'+':'-'} onComplete={handleCalcComplete} />
                             </div>
                         );
                     case 'MULTI':
                         return (
-                            <div className="animate-in zoom-in-95">
+                            <div key={stepKey} className="animate-in zoom-in-95">
                                 <div className="bg-emerald-50 p-3 rounded-xl text-emerald-800 font-bold mb-4 text-center text-sm"><Icon.Calc/> {currentStep.hint}</div>
                                 <VerticalMulti n1={currentStep.n1} n2={currentStep.n2} onComplete={handleCalcComplete} />
                             </div>
                         );
                     case 'INPUT_CHECK':
                         return (
-                            <div className="flex flex-col gap-4 animate-in slide-in-from-right">
+                            <div key={stepKey} className="flex flex-col gap-4 animate-in slide-in-from-right">
                                 <label className="font-bold text-slate-700">{currentStep.label}</label>
                                 <input type="text" className="p-4 border-2 border-slate-300 rounded-xl text-center text-2xl font-black" placeholder="輸入答案" onKeyDown={(e)=>{if(e.key==='Enter') handleInputCheck(e.target.value)}} />
                                 <button className="bg-slate-800 text-white p-4 rounded-xl font-black" onClick={(e)=>handleInputCheck(e.target.previousSibling.value)}>確定</button>
@@ -463,9 +500,16 @@
                         );
                     case 'CLOCK_INTERACTIVE':
                         return (
-                            <div className="animate-in zoom-in-95">
+                            <div key={stepKey} className="animate-in zoom-in-95">
                                 <div className="bg-yellow-50 p-3 rounded-xl text-yellow-800 font-bold mb-4 text-center text-sm"><Icon.Clock/> {currentStep.hint}</div>
-                                <ClockFace h={14} m={0} interactive={true} onTimeChange={(h,m)=>handleClockInteractive(h,m)} />
+                                {/* 傳入當前的 clockState */}
+                                <ClockFace 
+                                    h={clockState.h} 
+                                    m={clockState.m} 
+                                    interactive={true} 
+                                    onTimeChange={handleTimeUpdate} 
+                                    onConfirm={handleClockConfirm}
+                                />
                             </div>
                         );
                     default: return null;
@@ -477,7 +521,7 @@
                     <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl text-center border border-slate-100">
                         <div className="inline-block p-4 bg-indigo-100 rounded-full text-indigo-600 mb-6"><Icon.Brain/></div>
                         <h1 className="text-3xl font-black text-slate-800 mb-2">Jasper 數學模擬試卷</h1>
-                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">V4.0 完整版 (20題)</p>
+                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">V4.1 修復版 (20題)</p>
                         <div className="text-left bg-slate-50 p-6 rounded-2xl mb-8 space-y-3 text-slate-600 font-bold text-sm">
                             <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 混合計算 (括號、運算次序)</div>
                             <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 四位數直式 (進位、借位)</div>
@@ -530,7 +574,6 @@
 
             return (
                 <div className="min-h-screen p-4 md:p-8 max-w-2xl mx-auto">
-                    {/* 頂部資訊列 */}
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-2xl font-bold text-slate-600 shadow-sm border border-slate-100">
                              <span className="text-xs uppercase text-slate-400">Question</span>
@@ -541,12 +584,10 @@
                         </div>
                     </div>
 
-                    {/* 進度條 */}
                     <div className="w-full bg-slate-200 h-2 rounded-full mb-6 overflow-hidden">
                         <div className="bg-indigo-500 h-full transition-all duration-500" style={{width: `${progress}%`}}></div>
                     </div>
 
-                    {/* 主卡片 */}
                     <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden relative">
                         <div className="bg-slate-50 p-8 border-b border-slate-100 text-center relative">
                             <div className="absolute top-6 right-8 text-xs font-black text-slate-300 uppercase tracking-widest">Jasper Exam</div>
