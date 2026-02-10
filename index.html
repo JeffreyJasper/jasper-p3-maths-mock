@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jasper 數學特訓 V6.1 (邏輯修復版)</title>
+    <title>Jasper 數學特訓 V6.2 (智能混合版)</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -83,7 +83,7 @@
             );
         };
 
-        // --- 2. 連式直式 (3層 - Jasper 期望的連加連減) ---
+        // --- 2. 連式直式 (3層 - 恢復此組件用於純運算題) ---
         const VerticalContinuous = ({ n1, n2, n3, op1, op2, onComplete }) => {
             const digits1 = n1.toString().padStart(4, ' ').split('');
             const digits2 = n2.toString().padStart(4, ' ').split('');
@@ -228,17 +228,38 @@
             const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
 
             return [
-                // 1-8 運算題 (保持不變)
-                { id: 1, title: '運算次序', text: `${rand(50,80)} - (${rand(10,20)} + ${rand(5,10)}) = ?`, steps: [{ type: 'LOGIC', text: '有括弧', options: ['括弧加法', '減法'], ans: '括弧加法' }, { type: 'ADD', n1: 15, n2: 9, hint: '算括弧' }, { type: 'SUB', n1: 50, n2: 24, hint: '減法' }] },
+                // 1. 括號運算 (需拆解步驟)
                 (() => { const b=rand(10,20), c=rand(5,9), a=b+c+rand(10,30); return { id: 1, title: '運算次序', text: `${a} - (${b} + ${c}) = ?`, steps: [{ type: 'LOGIC', text: '有括弧，第一步先算？', options: shuffle([`${a} - ${b}`, `${b} + ${c}`, `${a} + ${c}`, `${a} - ${c}`]), ans: `${b} + ${c}` }, { type: 'ADD', n1: b, n2: c, hint: '直式計算括弧內' }, { type: 'SUB', n1: a, n2: b+c, hint: '最後計算減法' }]}; })(),
+                
+                // 2. 乘法與括弧 (需拆解步驟)
                 (() => { const b=rand(30,50), c=rand(10,25), diff=b-c, multi=rand(3,8); return { id: 2, title: '運算次序', text: `${multi} × (${b} - ${c}) = ?`, steps: [{ type: 'LOGIC', text: '括弧內的減法要先算。', options: shuffle([`${multi} × ${b}`, `${b} - ${c}`, `${multi} × ${c}`, `${b} + ${c}`]), ans: `${b} - ${c}` }, { type: 'SUB', n1: b, n2: c, hint: '直式計算括弧內' }, { type: 'MULTI', n1: diff, n2: multi, hint: '再乘以前面的數' }]}; })(),
+                
+                // 3. 先乘後加 (需拆解步驟)
                 (() => { const a=rand(10,20), b=rand(4,9), c=rand(3,8); return { id: 3, title: '先乘後加', text: `${a} + ${b} × ${c} = ?`, steps: [{ type: 'LOGIC', text: '先乘除後加減。第一步？', options: shuffle([`${a} + ${b}`, `${b} × ${c}`, `${a} + ${c}`, `${a} × ${c}`]), ans: `${b} × ${c}` }, { type: 'INPUT_CHECK', label: `心算 ${b} × ${c} = ?`, correct: (b*c).toString() }, { type: 'ADD', n1: a, n2: b*c, hint: '最後計算加法' }]}; })(),
-                (() => { const a=rand(600,900), b=rand(100,300), c=rand(50,100); return { id: 4, title: '連續減法 (連式)', text: `${a} - ${b} - ${c} = ?`, steps: [{ type: 'LOGIC', text: '從左到右算。', options: shuffle([`${a} - ${b}`, `${b} - ${c}`, `${a} - ${c}`, `${a} + ${b}`]), ans: `${a} - ${b}` }, { type: 'CONTINUOUS', n1: a, n2: b, n3: c, op1: '-', op2: '-', hint: '連式直式：先算上層，再算下層' }]}; })(),
+                
+                // 4. 連續減法 (純算術 -> 連式直式)
+                (() => { const a=rand(600,900), b=rand(100,300), c=rand(50,100); return { id: 4, title: '連續減法 (連式)', text: `${a} - ${b} - ${c} = ?`, steps: [{ type: 'LOGIC', text: '這是一題純算術，請用「連式」計算。', options: shuffle(['開始連式計算', '分開計算', '心算', '放棄']), ans: '開始連式計算' }, { type: 'CONTINUOUS', n1: a, n2: b, n3: c, op1: '-', op2: '-', hint: '連式直式：先算上層，再算下層' }]}; })(),
+                
+                // 5. 混合應用 (括號題 -> 拆解步驟)
                 (() => { const b=rand(25,45), c=rand(10,20), a=rand(4,9); return { id: 5, title: '混合應用', text: `${a} × (${b} - ${c}) = ?`, steps: [{ type: 'LOGIC', text: '先算括弧。', options: shuffle([`${b} - ${c}`, `${a} × ${b}`, `${a} + ${b}`, `${a} - ${c}`]), ans: `${b} - ${c}` }, { type: 'SUB', n1: b, n2: c, hint: '計算括弧內' }, { type: 'MULTI', n1: b-c, n2: a, hint: '最後乘法' }]}; })(),
+                
+                // 6. 四位數直式 (基本直式)
                 (() => { const a=rand(1000,4000), b=rand(2000,4000); return { id: 6, title: '四位數直式', text: `${a} + ${b} = ?`, steps: [{ type: 'LOGIC', text: '純加法', options: ['開始計算', '心算', '放棄', '跳過'], ans: '開始計算' }, { type: 'ADD', n1: a, n2: b, hint: '小心連續進位' }]}; })(),
+                
+                // 7. 四位數借位 (基本直式)
                 (() => { const a=rand(4000,6000), b=rand(1000,3000); const a_fixed=Math.floor(a/10)*10; return { id: 7, title: '四位數借位', text: `${a_fixed} - ${b} = ?`, steps: [{ type: 'LOGIC', text: '被減數有 0', options: ['開始計算', '心算', '放棄', '跳過'], ans: '開始計算' }, { type: 'SUB', n1: a_fixed, n2: b, hint: '0 不夠減，向左借位' }]}; })(),
-                (() => { const a=rand(1000,2000), b=rand(500,1000), c=rand(300,600); return { id: 8, title: '連續混合 (連式)', text: `${a} + ${b} - ${c} = ?`, steps: [{ type: 'LOGIC', text: '先加後減。', options: shuffle([`${a} + ${b}`, `${b} - ${c}`, `${a} - ${c}`, `${a} + ${c}`]), ans: `${a} + ${b}` }, { type: 'CONTINUOUS', n1: a, n2: b, n3: c, op1: '+', op2: '-', hint: '連式直式：先加後減' }]}; })(),
-                // 9-17 (略過重複代碼，保持不變)
+                
+                // 8. 連續混合 (純算術 A-B+C -> 連式直式)
+                (() => { 
+                    const a=rand(2000,3000), b=rand(500,1000), c=rand(300,600); 
+                    // 確保 a-b 是正數
+                    return { id: 8, title: '連續混合 (連式)', text: `${a} - ${b} + ${c} = ?`, steps: [
+                        { type: 'LOGIC', text: '純算術連加減，請用「連式」計算。', options: shuffle(['開始連式計算', '分開計算', '心算', '放棄']), ans: '開始連式計算' }, 
+                        { type: 'CONTINUOUS', n1: a, n2: b, n3: c, op1: '-', op2: '+', hint: '連式直式：先減後加' }
+                    ]}; 
+                })(),
+                
+                // 9-17 (保持不變)
                 { id: 9, title: '24小時制', text: '下午 9:20 用 24 小時制表示。', steps: [{ type: 'LOGIC', text: '下午 (PM) 小時？', options: shuffle(['加 12', '減 12', '不變', '加 10']), ans: '加 12' }, { type: 'INPUT_CHECK', label: '9 + 12 = ?', correct: '21' }, { type: 'INPUT_CHECK', label: '完整時間 (21:20)', correct: '21:20' } ]},
                 { id: 10, title: '24小時制', text: '15:45 是上午還是下午？', steps: [{ type: 'LOGIC', text: '15 > 12', options: shuffle(['下午 (PM)', '上午 (AM)', '中午', '凌晨']), ans: '下午 (PM)' }, { type: 'INPUT_CHECK', label: '15 - 12 = ?', correct: '3' }, { type: 'INPUT_CHECK', label: '寫法 (3:45pm)', correct: '3:45pm' } ]},
                 { id: 11, title: '時間推算', text: '14:00 兩小時半後是？', steps: [{ type: 'LOGIC', text: '14:00 + 2.5h', options: shuffle(['16:30', '15:30', '14:30', '17:00']), ans: '16:30' }, { type: 'CLOCK_INTERACTIVE', startH: 14, startM: 0, targetH: 16, targetM: 30, hint: '調整至 16:30' } ]},
@@ -249,7 +270,7 @@
                 { id: 16, title: '找贖文字題', text: '我有 $100，買了 4 本 $22 的書，還剩多少錢？', steps: [{ type: 'LOGIC', text: 'Step 1: 總價', options: shuffle(['22 × 4', '100 - 22', '22 + 4', '100 ÷ 4']), ans: '22 × 4' }, { type: 'MULTI', n1: 22, n2: 4, hint: '計算總價' }, { type: 'LOGIC', text: 'Step 2: 找贖', options: shuffle(['100 - 88', '88 - 100', '100 + 88', '88 × 100']), ans: '100 - 88' }, { type: 'SUB', n1: 100, n2: 88, hint: '計算找贖' } ]},
                 { id: 17, title: '比較文字題', text: '書 A $45，書 B 比 A 便宜 $12。書 B 多少錢？', steps: [{ type: 'LOGIC', text: '便宜 = 少', options: shuffle(['45 - 12', '45 + 12', '45 × 12', '12 - 45']), ans: '45 - 12' }, { type: 'SUB', n1: 45, n2: 12, hint: '計算書 B' } ]},
                 
-                // 第 18 題：修復邏輯後的兩步應用題 (拆回4步，不使用連式直式)
+                // 18. 文字題 (雖然是兩步，但因為涉及邏輯理解，保持"拆分步驟")
                 (() => {
                     const total = 500, a = rand(100, 150), b = rand(120, 180);
                     return { id: 18, title: '兩步文字題', text: `店有 ${total} 個蘋果，上午賣 ${a} 個，下午賣 ${b} 個。剩多少？`, steps: [
@@ -362,8 +383,8 @@
                 <div className="min-h-screen flex items-center justify-center p-4">
                     <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl text-center border border-slate-100">
                         <div className="inline-block p-4 bg-indigo-100 rounded-full text-indigo-600 mb-6"><Icon.Brain/></div>
-                        <h1 className="text-3xl font-black text-slate-800 mb-2">Jasper 數學 V6.1</h1>
-                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">隨機題目 + 邏輯修復</p>
+                        <h1 className="text-3xl font-black text-slate-800 mb-2">Jasper 數學 V6.2</h1>
+                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">智能混合 (連式+拆解)</p>
                         <button onClick={startQuiz} className="w-full bg-indigo-600 text-white text-xl font-black py-5 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all">開始挑戰</button>
                     </div>
                 </div>
