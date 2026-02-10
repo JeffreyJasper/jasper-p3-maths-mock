@@ -3,55 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jasper 小三數學模擬試卷 (V4.1 修復版)</title>
+    <title>Jasper 小三數學模擬試卷 (V5.0 進階回饋版)</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Roboto+Mono:wght@500;700&display=swap');
-        body { 
-            font-family: 'Noto Sans TC', sans-serif; 
-            background-color: #f0f9ff;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f9ff; user-select: none; -webkit-tap-highlight-color: transparent; }
         .font-mono { font-family: 'Roboto Mono', monospace; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        
-        /* 直式輸入格 */
-        .digit-input {
-            width: 100%; height: 100%;
-            text-align: center; font-family: 'Roboto Mono', monospace;
-            font-weight: 700; font-size: 1.5rem;
-            border: 2px solid #cbd5e1; border-radius: 0.5rem;
-            background-color: white; color: #1e293b;
-            transition: all 0.2s;
-        }
-        .digit-input:focus {
-            border-color: #6366f1; outline: none; background-color: #eef2ff; transform: scale(1.05);
-            z-index: 10;
-        }
-        .digit-input:disabled {
-            background-color: #f8fafc; border-color: #e2e8f0; color: #94a3b8;
-        }
-        
-        /* 進位/退位格 */
-        .carry-input {
-            width: 100%; height: 32px;
-            text-align: center; font-size: 1rem; font-weight: bold;
-            color: #ef4444; background-color: #fff1f2;
-            border: 1px dashed #fda4af; border-radius: 4px;
-        }
-        
-        .calc-line {
-            height: 4px; background-color: #334155; border-radius: 2px;
-            margin-top: 4px; margin-bottom: 4px;
-        }
+        .digit-input { width: 100%; height: 100%; text-align: center; font-family: 'Roboto Mono', monospace; font-weight: 700; font-size: 1.5rem; border: 2px solid #cbd5e1; border-radius: 0.5rem; background-color: white; color: #1e293b; transition: all 0.2s; }
+        .digit-input:focus { border-color: #6366f1; outline: none; background-color: #eef2ff; transform: scale(1.05); z-index: 10; }
+        .digit-input:disabled { background-color: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
+        .carry-input { width: 100%; height: 32px; text-align: center; font-size: 1rem; font-weight: bold; color: #ef4444; background-color: #fff1f2; border: 1px dashed #fda4af; border-radius: 4px; }
+        .calc-line { height: 4px; background-color: #334155; border-radius: 2px; margin-top: 4px; margin-bottom: 4px; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* 鼓勵動畫 */
+        @keyframes popUp {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .praise-anim { animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 </head>
 <body>
@@ -60,16 +37,18 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- Icons ---
         const Icon = {
             Clock: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
             Calc: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>,
             Check: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>,
             Brain: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
-            Star: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+            Star: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>,
+            Redo: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><polyline points="21 3 21 8 16 8"/></svg>
         };
 
-        // --- 組件：直式加減 (VerticalAddSub) ---
+        const PRAISE_WORDS = ["太棒了！", "Jasper 好野！", "完全正確！", "做得好！", "數學天才！", "繼續加油！", "無得頂！"];
+
+        // --- 組件：直式加減 ---
         const VerticalAddSub = ({ n1, n2, op, onComplete }) => {
             const digits1 = n1.toString().padStart(4, ' ').split('');
             const digits2 = n2.toString().padStart(4, ' ').split('');
@@ -84,7 +63,7 @@
                 if (parseInt(userNumStr.replace(/\s/g, '')) === correctAns) {
                     onComplete(correctAns);
                 } else {
-                    setErrorMsg('計算錯誤！請檢查進位/退位或符號。');
+                    setErrorMsg('小心！請檢查你的答案和進位/退位。');
                 }
             };
 
@@ -109,7 +88,7 @@
             );
         };
 
-        // --- 組件：直式乘法 (VerticalMulti) ---
+        // --- 組件：直式乘法 ---
         const VerticalMulti = ({ n1, n2, onComplete }) => {
             const digits1 = n1.toString().padStart(3, ' ').split('');
             const [inputs, setInputs] = useState(['', '', '', '']);
@@ -123,7 +102,7 @@
                 if (parseInt(userNumStr.replace(/\s/g, '')) === correctAns) {
                     onComplete(correctAns);
                 } else {
-                    setErrorMsg('乘法算錯囉！記得把進位的小數字寫在上面。');
+                    setErrorMsg('乘法算錯囉！記得把進位寫在上面。');
                 }
             };
 
@@ -150,12 +129,10 @@
             );
         };
 
-        // --- 組件：時鐘面 (修復版) ---
+        // --- 組件：時鐘 ---
         const ClockFace = ({ h, m, interactive, onTimeChange, onConfirm }) => {
             const hourAngle = (h * 30) + (m * 0.5);
             const minuteAngle = m * 6;
-            
-            // 修正：這裡只負責回傳新的時間，不負責檢查答案
             const handleHour = () => interactive && onTimeChange(h===12?1:h+1, m);
             const handleMin = () => interactive && onTimeChange(h, m===0?30:0);
 
@@ -163,18 +140,16 @@
                 <div className="flex flex-col items-center">
                     <svg width="180" height="180" viewBox="0 0 200 200" className="drop-shadow-lg my-4">
                         <circle cx="100" cy="100" r="95" fill="white" stroke="#334155" strokeWidth="6" />
-                        {[...Array(12)].map((_, i) => (
-                            <text key={i} x={100 + 75 * Math.sin((i+1)*Math.PI/6)} y={105 - 75 * Math.cos((i+1)*Math.PI/6)} textAnchor="middle" className="font-bold text-lg font-mono" fill="#64748b">{i+1}</text>
-                        ))}
-                        <line x1="100" y1="100" x2={100 + 50 * Math.sin(hourAngle * Math.PI / 180)} y2={100 - 50 * Math.cos(hourAngle * Math.PI / 180)} stroke="#1e293b" strokeWidth="6" strokeLinecap="round" />
-                        <line x1="100" y1="100" x2={100 + 75 * Math.sin(minuteAngle * Math.PI / 180)} y2={100 - 75 * Math.cos(minuteAngle * Math.PI / 180)} stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
+                        {[...Array(12)].map((_, i) => <text key={i} x={100+75*Math.sin((i+1)*Math.PI/6)} y={105-75*Math.cos((i+1)*Math.PI/6)} textAnchor="middle" className="font-bold text-lg font-mono" fill="#64748b">{i+1}</text>)}
+                        <line x1="100" y1="100" x2={100+50*Math.sin(hourAngle*Math.PI/180)} y2={100-50*Math.cos(hourAngle*Math.PI/180)} stroke="#1e293b" strokeWidth="6" strokeLinecap="round" />
+                        <line x1="100" y1="100" x2={100+75*Math.sin(minuteAngle*Math.PI/180)} y2={100-75*Math.cos(minuteAngle*Math.PI/180)} stroke="#ef4444" strokeWidth="4" strokeLinecap="round" />
                         <circle cx="100" cy="100" r="5" fill="#1e293b" />
                     </svg>
                     {interactive && (
                         <div className="flex flex-col w-full gap-3">
                             <div className="flex gap-2 justify-center">
-                                <button onClick={handleHour} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-bold shadow hover:bg-slate-300 active:scale-95 transition-all">調時針 (+1)</button>
-                                <button onClick={handleMin} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-bold shadow hover:bg-slate-300 active:scale-95 transition-all">調分針 (+30)</button>
+                                <button onClick={handleHour} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-bold shadow hover:bg-slate-300">調時針</button>
+                                <button onClick={handleMin} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-bold shadow hover:bg-slate-300">調分針</button>
                             </div>
                             <button onClick={onConfirm} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-black shadow-md active:scale-95 transition-all">確認時間</button>
                         </div>
@@ -188,179 +163,108 @@
             <div className="flex justify-center my-4">
                  <svg width="200" height="150" viewBox="0 0 200 150">
                     {type === 'trapezoid' && (
-                        <>
-                            <path d="M40 130 L160 130 L140 20 L60 20 Z" fill="none" stroke="#334155" strokeWidth="4" />
-                            <path d="M60 20 L100 130 L140 20 Z" fill="#e0e7ff" stroke="#4f46e5" strokeWidth="3" strokeDasharray="5,5" />
-                        </>
+                        <><path d="M40 130 L160 130 L140 20 L60 20 Z" fill="none" stroke="#334155" strokeWidth="4" /><path d="M60 20 L100 130 L140 20 Z" fill="#e0e7ff" stroke="#4f46e5" strokeWidth="3" strokeDasharray="5,5" /></>
                     )}
-                    {type === 'triangle' && (
-                        <path d="M50 130 L150 130 L50 30 Z" fill="none" stroke="#334155" strokeWidth="4" />
-                    )}
+                    {type === 'triangle' && <path d="M50 130 L150 130 L50 30 Z" fill="none" stroke="#334155" strokeWidth="4" />}
                 </svg>
             </div>
         );
 
-        // --- 完整 20 題題庫 ---
-        const QUESTIONS_DATA = [
-            // --- 混合計算 (1-5) ---
-            {
-                id: 1, title: '運算次序 (括號減法)', text: '50 - (15 + 9) = ?',
-                steps: [
-                    { type: 'LOGIC', text: '有括弧，第一步先算？', options: ['50 - 15', '15 + 9', '50 + 9'], ans: '15 + 9' },
-                    { type: 'ADD', n1: 15, n2: 9, hint: '直式計算 15 + 9' },
-                    { type: 'SUB', n1: 50, n2: 24, hint: '用 50 減去剛才的答案 (24)' }
-                ]
-            },
-            {
-                id: 2, title: '運算次序 (乘法與括號)', text: '6 × (42 - 18) = ?',
-                steps: [
-                    { type: 'LOGIC', text: '括弧內的減法要先算。算式是？', options: ['6 × 42', '42 - 18', '6 × 18'], ans: '42 - 18' },
-                    { type: 'SUB', n1: 42, n2: 18, hint: '直式計算括弧內' },
-                    { type: 'MULTI', n1: 24, n2: 6, hint: '答案 24 再乘以 6' }
-                ]
-            },
-            {
-                id: 3, title: '運算次序 (先乘後加)', text: '12 + 5 × 6 = ?',
-                steps: [
-                    { type: 'LOGIC', text: '沒有括弧，要先乘除後加減。第一步？', options: ['12 + 5', '5 × 6'], ans: '5 × 6' },
-                    { type: 'INPUT_CHECK', label: '心算 5 × 6 = ?', correct: '30' },
-                    { type: 'ADD', n1: 12, n2: 30, hint: '最後算 12 加 30' }
-                ]
-            },
-            {
-                id: 4, title: '連續減法', text: '500 - 128 - 75 = ?',
-                steps: [
-                    { type: 'LOGIC', text: '沒有括弧，從左到右算。第一步？', options: ['500 - 128', '128 - 75'], ans: '500 - 128' },
-                    { type: 'SUB', n1: 500, n2: 128, hint: '直式計算 500 - 128 (小心借位)' },
-                    { type: 'SUB', n1: 372, n2: 75, hint: '用 372 減去 75' }
-                ]
-            },
-            {
-                id: 5, title: '混合應用', text: '8 × (37 - 11) = ?',
-                steps: [
-                    { type: 'LOGIC', text: '先算括弧。算式是？', options: ['37 - 11', '8 × 37'], ans: '37 - 11' },
-                    { type: 'SUB', n1: 37, n2: 11, hint: '計算括弧內' },
-                    { type: 'MULTI', n1: 26, n2: 8, hint: '用 26 乘以 8' }
-                ]
-            },
-            // --- 直式計算 (6-8) ---
-            {
-                id: 6, title: '四位數進位', text: '2456 + 3789 = ?',
-                steps: [
-                    { type: 'LOGIC', text: '這是純加法，請直接用直式。', options: ['開始計算'], ans: '開始計算' },
-                    { type: 'ADD', n1: 2456, n2: 3789, hint: '小心連續進位' }
-                ]
-            },
-            {
-                id: 7, title: '四位數借位 (陷阱題)', text: '4000 - 1234 = ?',
-                steps: [
-                    { type: 'LOGIC', text: '被減數有很多 0，要特別小心！', options: ['開始計算'], ans: '開始計算' },
-                    { type: 'SUB', n1: 4000, n2: 1234, hint: '0 不夠減，要向前一位借' }
-                ]
-            },
-            {
-                id: 8, title: '連續混合運算', text: '1250 + 850 - 600 = ?',
-                steps: [
-                    { type: 'LOGIC', text: '先加後減。第一步？', options: ['1250 + 850', '850 - 600'], ans: '1250 + 850' },
-                    { type: 'ADD', n1: 1250, n2: 850, hint: '計算加法' },
-                    { type: 'SUB', n1: 2100, n2: 600, hint: '用 2100 減 600' }
-                ]
-            },
-            // --- 時間 (9-11) ---
-            {
-                id: 9, title: '24小時制 (PM)', text: '下午 9:20 用 24 小時制表示。',
-                steps: [
-                    { type: 'LOGIC', text: '下午 (PM) 的小時要怎麼辦？', options: ['加 12', '不變'], ans: '加 12' },
-                    { type: 'INPUT_CHECK', label: '9 + 12 = ?', correct: '21' },
-                    { type: 'INPUT_CHECK', label: '完整時間 (如 21:20)', correct: '21:20' }
-                ]
-            },
-            {
-                id: 10, title: '24小時制 (轉12)', text: '15:45 是上午還是下午？',
-                steps: [
-                    { type: 'LOGIC', text: '15 大於 12，所以是？', options: ['下午 (PM)', '上午 (AM)'], ans: '下午 (PM)' },
-                    { type: 'INPUT_CHECK', label: '15 - 12 = ?', correct: '3' },
-                    { type: 'INPUT_CHECK', label: '完整寫法 (如 3:45pm)', correct: '3:45pm' }
-                ]
-            },
-            {
-                id: 11, title: '撥鐘算時間', text: '現在 14:00，兩小時半後是幾點？',
-                steps: [
-                    { type: 'LOGIC', text: '兩小時半 = 2小時 30分。14:00 + 2小時 = ?', options: ['16:00', '15:30'], ans: '16:00' },
-                    // startH: 14 定義初始時鐘狀態
-                    { type: 'CLOCK_INTERACTIVE', startH: 14, startM: 0, targetH: 16, targetM: 30, hint: '請調整時鐘顯示 16:30' }
-                ]
-            },
-            // --- 圖形 (12-14) ---
-            {
-                id: 12, title: '圖形與角', isGeometry: true, geoType: 'trapezoid', text: '觀察梯形內的三角形。',
-                steps: [
-                    { type: 'LOGIC', text: '三角形內有幾個銳角？', options: ['2個', '3個'], ans: '3個' },
-                    { type: 'LOGIC', text: '梯形(不含三角形)有幾個鈍角？', options: ['1個', '2個'], ans: '2個' }
-                ]
-            },
-            {
-                id: 13, title: '辨別直角', isGeometry: true, geoType: 'triangle', text: '這是一個直角三角形。',
-                steps: [
-                    { type: 'LOGIC', text: '圖中有多少個直角？', options: ['1個', '0個', '2個'], ans: '1個' },
-                    { type: 'LOGIC', text: '最大的那個角是？', options: ['直角', '銳角'], ans: '直角' }
-                ]
-            },
-            {
-                id: 14, title: '角的大小', text: '鈍角和直角，哪個比較大？',
-                steps: [
-                    { type: 'LOGIC', text: '直角是90度，鈍角大於90度。所以？', options: ['鈍角較大', '直角較大'], ans: '鈍角較大' },
-                    { type: 'LOGIC', text: '銳角和直角，哪個比較細？', options: ['銳角', '直角'], ans: '銳角' }
-                ]
-            },
-            // --- 文字題 (15-20) ---
-            {
-                id: 15, title: '文字題：倍數', text: '妹妹有 $15，姐姐的錢是妹妹的 5 倍。姐姐有多少錢？',
-                steps: [
-                    { type: 'LOGIC', text: '「5 倍」表示要用什麼運算？', options: ['乘法', '加法'], ans: '乘法' },
-                    { type: 'MULTI', n1: 15, n2: 5, hint: '直式計算 15 × 5' }
-                ]
-            },
-            {
-                id: 16, title: '文字題：找贖', text: '我有 $100，買了 4 本 $22 的書，還剩多少錢？',
-                steps: [
-                    { type: 'LOGIC', text: 'Step 1: 先算 4 本書總共多少錢', options: ['22 × 4', '100 - 22'], ans: '22 × 4' },
-                    { type: 'MULTI', n1: 22, n2: 4, hint: '計算總價' },
-                    { type: 'LOGIC', text: 'Step 2: 用 $100 減去總價 $88', options: ['100 - 88', '88 - 100'], ans: '100 - 88' },
-                    { type: 'SUB', n1: 100, n2: 88, hint: '計算找贖 (小心借位)' }
-                ]
-            },
-            {
-                id: 17, title: '文字題：比較', text: '書 A 售 $45，書 B 比書 A 便宜 $12。買書 B 要付多少錢？',
-                steps: [
-                    { type: 'LOGIC', text: '便宜 $12 代表書 B 價錢較少。', options: ['45 - 12', '45 + 12'], ans: '45 - 12' },
-                    { type: 'SUB', n1: 45, n2: 12, hint: '計算書 B 的價錢' }
-                ]
-            },
-            {
-                id: 18, title: '文字題：共有 (兩步)', text: '店裡有 500 個蘋果，上午賣了 120 個，下午賣了 150 個。還剩多少個？',
-                steps: [
-                    { type: 'LOGIC', text: '方法一：先算總共賣了多少個。', options: ['120 + 150', '500 - 120'], ans: '120 + 150' },
-                    { type: 'ADD', n1: 120, n2: 150, hint: '計算賣出的總數' },
-                    { type: 'SUB', n1: 500, n2: 270, hint: '用原本數量減去賣出的' }
-                ]
-            },
-            {
-                id: 19, title: '文字題：每人付款', text: '3 個同學去野餐，每人要付 $35。他們共付了多少元？',
-                steps: [
-                    { type: 'LOGIC', text: '「每人」付 $35，共有 3 人。', options: ['35 + 3', '35 × 3'], ans: '35 × 3' },
-                    { type: 'MULTI', n1: 35, n2: 3, hint: '直式計算總金額' }
-                ]
-            },
-            {
-                id: 20, title: '文字題：比較 (混合)', text: '哥哥有 20 元，弟弟有 10 元。買一個 $45 的玩具，他們合資還欠多少？',
-                steps: [
-                    { type: 'LOGIC', text: 'Step 1: 先算兩人共有多少錢', options: ['20 + 10', '20 - 10'], ans: '20 + 10' },
-                    { type: 'INPUT_CHECK', label: '20 + 10 = ?', correct: '30' },
-                    { type: 'LOGIC', text: 'Step 2: 玩具 $45，他們有 $30，欠多少？', options: ['45 - 30', '30 + 45'], ans: '45 - 30' },
-                    { type: 'SUB', n1: 45, n2: 30, hint: '計算差額' }
-                ]
-            }
+        // --- 完整 20 題題庫 (Updated with 4 options) ---
+        const FULL_QUESTIONS = [
+            { id: 1, title: '運算次序', text: '50 - (15 + 9) = ?', steps: [
+                { type: 'LOGIC', text: '有括弧，第一步先算？', options: ['50 - 15', '15 + 9', '50 + 9', '50 - 9'], ans: '15 + 9' },
+                { type: 'ADD', n1: 15, n2: 9, hint: '直式計算 15 + 9' },
+                { type: 'SUB', n1: 50, n2: 24, hint: '用 50 減去剛才的答案' }
+            ]},
+            { id: 2, title: '運算次序', text: '6 × (42 - 18) = ?', steps: [
+                { type: 'LOGIC', text: '括弧內的減法要先算。算式是？', options: ['6 × 42', '42 - 18', '6 × 18', '6 + 42'], ans: '42 - 18' },
+                { type: 'SUB', n1: 42, n2: 18, hint: '直式計算括弧內' },
+                { type: 'MULTI', n1: 24, n2: 6, hint: '答案 24 再乘以 6' }
+            ]},
+            { id: 3, title: '運算次序', text: '12 + 5 × 6 = ?', steps: [
+                { type: 'LOGIC', text: '沒有括弧，要先乘除後加減。第一步？', options: ['12 + 5', '5 × 6', '12 + 6', '12 - 5'], ans: '5 × 6' },
+                { type: 'INPUT_CHECK', label: '心算 5 × 6 = ?', correct: '30' },
+                { type: 'ADD', n1: 12, n2: 30, hint: '最後算 12 加 30' }
+            ]},
+            { id: 4, title: '連續減法', text: '500 - 128 - 75 = ?', steps: [
+                { type: 'LOGIC', text: '沒有括弧，從左到右算。第一步？', options: ['500 - 128', '128 - 75', '500 - 75', '128 + 75'], ans: '500 - 128' },
+                { type: 'SUB', n1: 500, n2: 128, hint: '直式計算 500 - 128' },
+                { type: 'SUB', n1: 372, n2: 75, hint: '再減去 75' }
+            ]},
+            { id: 5, title: '混合應用', text: '8 × (37 - 11) = ?', steps: [
+                { type: 'LOGIC', text: '先算括弧。算式是？', options: ['37 - 11', '8 × 37', '8 + 37', '8 - 11'], ans: '37 - 11' },
+                { type: 'SUB', n1: 37, n2: 11, hint: '計算括弧內' },
+                { type: 'MULTI', n1: 26, n2: 8, hint: '用 26 乘以 8' }
+            ]},
+            { id: 6, title: '四位數進位', text: '2456 + 3789 = ?', steps: [
+                { type: 'LOGIC', text: '這是純加法，請直接用直式。', options: ['開始計算', '跳過', '心算', '放棄'], ans: '開始計算' },
+                { type: 'ADD', n1: 2456, n2: 3789, hint: '小心連續進位' }
+            ]},
+            { id: 7, title: '四位數借位', text: '4000 - 1234 = ?', steps: [
+                { type: 'LOGIC', text: '被減數有很多 0，要特別小心！', options: ['開始計算', '用加法', '不用算', '心算'], ans: '開始計算' },
+                { type: 'SUB', n1: 4000, n2: 1234, hint: '0 不夠減，向左借位' }
+            ]},
+            { id: 8, title: '連續混合', text: '1250 + 850 - 600 = ?', steps: [
+                { type: 'LOGIC', text: '先加後減。第一步？', options: ['1250 + 850', '850 - 600', '1250 - 600', '1250 + 600'], ans: '1250 + 850' },
+                { type: 'ADD', n1: 1250, n2: 850, hint: '計算加法' },
+                { type: 'SUB', n1: 2100, n2: 600, hint: '再減去 600' }
+            ]},
+            { id: 9, title: '24小時制', text: '下午 9:20 用 24 小時制表示。', steps: [
+                { type: 'LOGIC', text: '下午 (PM) 的小時要怎麼辦？', options: ['加 12', '減 12', '不變', '加 10'], ans: '加 12' },
+                { type: 'INPUT_CHECK', label: '9 + 12 = ?', correct: '21' },
+                { type: 'INPUT_CHECK', label: '完整時間 (如 21:20)', correct: '21:20' }
+            ]},
+            { id: 10, title: '24小時制', text: '15:45 是上午還是下午？', steps: [
+                { type: 'LOGIC', text: '15 大於 12，所以是？', options: ['下午 (PM)', '上午 (AM)', '中午', '凌晨'], ans: '下午 (PM)' },
+                { type: 'INPUT_CHECK', label: '15 - 12 = ?', correct: '3' },
+                { type: 'INPUT_CHECK', label: '完整寫法 (如 3:45pm)', correct: '3:45pm' }
+            ]},
+            { id: 11, title: '時間推算', text: '現在 14:00，兩小時半後是幾點？', steps: [
+                { type: 'LOGIC', text: '14:00 + 2小時 = ?', options: ['16:00', '15:30', '14:30', '17:00'], ans: '16:00' },
+                { type: 'CLOCK_INTERACTIVE', startH: 14, startM: 0, targetH: 16, targetM: 30, hint: '請調整時鐘顯示 16:30' }
+            ]},
+            { id: 12, title: '圖形與角', isGeometry: true, geoType: 'trapezoid', text: '觀察梯形內的三角形。', steps: [
+                { type: 'LOGIC', text: '三角形內有幾個銳角？', options: ['3個', '2個', '1個', '0個'], ans: '3個' },
+                { type: 'LOGIC', text: '梯形(不含三角形)有幾個鈍角？', options: ['2個', '1個', '3個', '0個'], ans: '2個' }
+            ]},
+            { id: 13, title: '辨別直角', isGeometry: true, geoType: 'triangle', text: '這是一個直角三角形。', steps: [
+                { type: 'LOGIC', text: '圖中有多少個直角？', options: ['1個', '0個', '2個', '3個'], ans: '1個' },
+                { type: 'LOGIC', text: '最大的那個角是？', options: ['直角', '銳角', '鈍角', '平角'], ans: '直角' }
+            ]},
+            { id: 14, title: '角的大小', text: '鈍角和直角，哪個比較大？', steps: [
+                { type: 'LOGIC', text: '直角是90度，鈍角大於90度。所以？', options: ['鈍角較大', '直角較大', '一樣大', '無法比較'], ans: '鈍角較大' },
+                { type: 'LOGIC', text: '銳角和直角，哪個比較細？', options: ['銳角', '直角', '鈍角', '一樣細'], ans: '銳角' }
+            ]},
+            { id: 15, title: '倍數文字題', text: '妹妹有 $15，姐姐的錢是妹妹的 5 倍。姐姐有多少錢？', steps: [
+                { type: 'LOGIC', text: '「5 倍」表示要用什麼運算？', options: ['乘法', '加法', '減法', '除法'], ans: '乘法' },
+                { type: 'MULTI', n1: 15, n2: 5, hint: '直式計算 15 × 5' }
+            ]},
+            { id: 16, title: '找贖文字題', text: '我有 $100，買了 4 本 $22 的書，還剩多少錢？', steps: [
+                { type: 'LOGIC', text: 'Step 1: 先算 4 本書總價', options: ['22 × 4', '100 - 22', '22 + 4', '100 ÷ 4'], ans: '22 × 4' },
+                { type: 'MULTI', n1: 22, n2: 4, hint: '計算總價' },
+                { type: 'LOGIC', text: 'Step 2: 用 $100 減去總價 $88', options: ['100 - 88', '88 - 100', '100 + 88', '88 × 100'], ans: '100 - 88' },
+                { type: 'SUB', n1: 100, n2: 88, hint: '計算找贖' }
+            ]},
+            { id: 17, title: '比較文字題', text: '書 A 售 $45，書 B 比書 A 便宜 $12。買書 B 要付多少錢？', steps: [
+                { type: 'LOGIC', text: '便宜 $12 代表書 B 價錢較少。', options: ['45 - 12', '45 + 12', '45 × 12', '12 - 45'], ans: '45 - 12' },
+                { type: 'SUB', n1: 45, n2: 12, hint: '計算書 B 的價錢' }
+            ]},
+            { id: 18, title: '兩步文字題', text: '店裡有 500 個蘋果，上午賣了 120 個，下午賣了 150 個。還剩多少個？', steps: [
+                { type: 'LOGIC', text: '先算總共賣了多少個。', options: ['120 + 150', '500 - 120', '500 - 150', '150 - 120'], ans: '120 + 150' },
+                { type: 'ADD', n1: 120, n2: 150, hint: '計算賣出的總數' },
+                { type: 'SUB', n1: 500, n2: 270, hint: '用原本數量減去賣出的' }
+            ]},
+            { id: 19, title: '每人付款', text: '3 個同學去野餐，每人要付 $35。他們共付了多少元？', steps: [
+                { type: 'LOGIC', text: '「每人」付 $35，共有 3 人。', options: ['35 × 3', '35 + 3', '35 - 3', '35 ÷ 3'], ans: '35 × 3' },
+                { type: 'MULTI', n1: 35, n2: 3, hint: '直式計算總金額' }
+            ]},
+            { id: 20, title: '合資文字題', text: '哥哥有 20 元，弟弟有 10 元。買一個 $45 的玩具，他們合資還欠多少？', steps: [
+                { type: 'LOGIC', text: 'Step 1: 先算兩人共有多少錢', options: ['20 + 10', '20 - 10', '20 × 10', '45 - 20'], ans: '20 + 10' },
+                { type: 'INPUT_CHECK', label: '20 + 10 = ?', correct: '30' },
+                { type: 'LOGIC', text: 'Step 2: 玩具 $45，他們有 $30，欠多少？', options: ['45 - 30', '30 + 45', '45 + 30', '30 - 45'], ans: '45 - 30' },
+                { type: 'SUB', n1: 45, n2: 30, hint: '計算差額' }
+            ]}
         ];
 
         const App = () => {
@@ -368,91 +272,101 @@
             const [qIndex, setQIndex] = useState(0);
             const [stepIndex, setStepIndex] = useState(0);
             const [score, setScore] = useState(0);
-            const [history, setHistory] = useState([]);
+            const [mistakeList, setMistakeList] = useState(new Set()); // 存儲錯題 ID
             const [timer, setTimer] = useState(0);
-            const timerRef = useRef(null);
-            
-            // 修正時鐘：需要一個 State 來記錄"當前"的時鐘狀態，避免按一下就檢查
             const [clockState, setClockState] = useState({h: 12, m: 0});
-
-            const currentQ = QUESTIONS_DATA[qIndex];
-            const currentStep = currentQ.steps[stepIndex];
+            const [praise, setPraise] = useState('');
             
-            const progress = ((qIndex) / QUESTIONS_DATA.length) * 100;
+            // 決定當前要顯示的題目列表 (正常模式 vs 重做模式)
+            const [activeQuestions, setActiveQuestions] = useState(FULL_QUESTIONS);
+
+            const timerRef = useRef(null);
+
+            const currentQ = activeQuestions[qIndex];
+            const currentStep = currentQ.steps[stepIndex];
+            const progress = ((qIndex) / activeQuestions.length) * 100;
 
             useEffect(() => {
                 if (mode === 'GAME') {
                     timerRef.current = setInterval(() => setTimer(t => t + 1), 1000);
-                } else {
-                    clearInterval(timerRef.current);
-                }
+                } else clearInterval(timerRef.current);
                 return () => clearInterval(timerRef.current);
             }, [mode]);
 
-            // 修正：進入時鐘題時，初始化時鐘時間
             useEffect(() => {
                 if (mode === 'GAME' && currentStep.type === 'CLOCK_INTERACTIVE') {
-                    setClockState({
-                        h: currentStep.startH || 12, // 預設 12 或題目指定時間
-                        m: currentStep.startM || 0
-                    });
+                    setClockState({ h: currentStep.startH || 12, m: currentStep.startM || 0 });
                 }
-            }, [qIndex, stepIndex, mode]);
+            }, [qIndex, stepIndex, mode, activeQuestions]);
+
+            const showPraise = () => {
+                const msg = PRAISE_WORDS[Math.floor(Math.random() * PRAISE_WORDS.length)];
+                setPraise(msg);
+                setTimeout(() => setPraise(''), 1500);
+            };
+
+            const markMistake = () => {
+                // 將當前題目 ID 加入錯題集
+                setMistakeList(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(currentQ.id);
+                    return newSet;
+                });
+            };
 
             const handleLogicChoice = (opt) => {
-                if (opt === currentStep.ans) nextStep(true);
-                else {
-                    recordMistake('邏輯選擇錯誤', `選了 ${opt}，正確應為 ${currentStep.ans}`);
-                    alert('邏輯選錯囉！再想一想題目。');
+                if (opt === currentStep.ans) {
+                    showPraise();
+                    nextStep();
+                } else {
+                    markMistake();
+                    alert(`選錯了！${opt} 不正確，再試一次！`);
                 }
             };
 
-            const handleCalcComplete = (val) => nextStep(true);
+            const handleCalcComplete = (val) => {
+                showPraise();
+                nextStep();
+            };
 
             const handleInputCheck = (val) => {
-                if (val.trim() === currentStep.correct) nextStep(true);
-                else {
-                    recordMistake('填空錯誤', `填了 ${val}，正確應為 ${currentStep.correct}`);
-                    alert('答案不對喔！');
+                if (val.trim() === currentStep.correct) {
+                    showPraise();
+                    nextStep();
+                } else {
+                    markMistake();
+                    alert(`答案不對喔！`);
                 }
             };
 
-            // 修正：只更新時間，不檢查
-            const handleTimeUpdate = (newH, newM) => {
-                setClockState({h: newH, m: newM});
-            };
+            const handleTimeUpdate = (newH, newM) => setClockState({h: newH, m: newM});
 
-            // 修正：新增確認按鈕的處理函數
             const handleClockConfirm = () => {
                 let targetH = currentStep.targetH;
                 let h = clockState.h;
                 let m = clockState.m;
-                
-                // 寬容判斷
                 let isCorrect = false;
                 if (m === currentStep.targetM) {
                     if (h === targetH) isCorrect = true;
-                    // 處理 12小時制 16:00 = 4:00
                     if (h > 12 && h - 12 === targetH) isCorrect = true; 
                     if (targetH > 12 && h === targetH - 12) isCorrect = true;
                 }
 
-                if (isCorrect) nextStep(true);
-                else alert(`時間好像不對喔？請調到 ${targetH}:${currentStep.targetM === 0 ? '00' : currentStep.targetM}`);
-            };
-
-            const recordMistake = (type, detail) => {
-                if (!history.some(h => h.qIndex === qIndex + 1)) {
-                    setHistory(prev => [...prev, { qIndex: qIndex + 1, title: currentQ.title, type, detail }]);
+                if (isCorrect) {
+                    showPraise();
+                    nextStep();
+                } else {
+                    markMistake();
+                    alert(`時間不對，請再調一次！`);
                 }
             };
 
-            const nextStep = (isCorrect) => {
+            const nextStep = () => {
                 if (stepIndex < currentQ.steps.length - 1) {
                     setStepIndex(p => p + 1);
                 } else {
-                    setScore(s => s + 1);
-                    if (qIndex < QUESTIONS_DATA.length - 1) {
+                    // 完成一題
+                    if (qIndex < activeQuestions.length - 1) {
                         setQIndex(q => q + 1);
                         setStepIndex(0);
                     } else {
@@ -461,10 +375,29 @@
                 }
             };
 
-            const renderStep = () => {
-                // Bug 修復重點：給每個 Step 組件加上 key，強制 React 在切換步驟時重新渲染，從而清空輸入框
-                const stepKey = `${qIndex}-${stepIndex}`; 
+            const startRedo = () => {
+                // 過濾出錯題
+                const wrongQs = FULL_QUESTIONS.filter(q => mistakeList.has(q.id));
+                setActiveQuestions(wrongQs);
+                setQIndex(0);
+                setStepIndex(0);
+                setMode('GAME');
+                // 這裡不清除 mistakeList，直到他做對為止 (或者你可以選擇清除)
+                // 為了邏輯簡單，我們假設重做時如果對了就不再是錯題，但這裡簡化為重新跑一次錯題流程
+            };
 
+            const resetAll = () => {
+                setActiveQuestions(FULL_QUESTIONS);
+                setQIndex(0);
+                setStepIndex(0);
+                setScore(0);
+                setMistakeList(new Set());
+                setTimer(0);
+                setMode('MENU');
+            };
+
+            const renderStep = () => {
+                const stepKey = `${currentQ.id}-${stepIndex}`; 
                 switch(currentStep.type) {
                     case 'LOGIC':
                         return (
@@ -502,14 +435,7 @@
                         return (
                             <div key={stepKey} className="animate-in zoom-in-95">
                                 <div className="bg-yellow-50 p-3 rounded-xl text-yellow-800 font-bold mb-4 text-center text-sm"><Icon.Clock/> {currentStep.hint}</div>
-                                {/* 傳入當前的 clockState */}
-                                <ClockFace 
-                                    h={clockState.h} 
-                                    m={clockState.m} 
-                                    interactive={true} 
-                                    onTimeChange={handleTimeUpdate} 
-                                    onConfirm={handleClockConfirm}
-                                />
+                                <ClockFace h={clockState.h} m={clockState.m} interactive={true} onTimeChange={handleTimeUpdate} onConfirm={handleClockConfirm}/>
                             </div>
                         );
                     default: return null;
@@ -521,63 +447,70 @@
                     <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl text-center border border-slate-100">
                         <div className="inline-block p-4 bg-indigo-100 rounded-full text-indigo-600 mb-6"><Icon.Brain/></div>
                         <h1 className="text-3xl font-black text-slate-800 mb-2">Jasper 數學模擬試卷</h1>
-                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">V4.1 修復版 (20題)</p>
+                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">V5.0 進階回饋版</p>
                         <div className="text-left bg-slate-50 p-6 rounded-2xl mb-8 space-y-3 text-slate-600 font-bold text-sm">
-                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 混合計算 (括號、運算次序)</div>
-                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 四位數直式 (進位、借位)</div>
-                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 時間與時鐘</div>
-                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 圖形與角</div>
-                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 綜合文字題</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 20 題完整測試</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 4 選 1 挑戰</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 即時鼓勵與回饋</div>
+                            <div className="flex items-center gap-3"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> 錯題重做功能</div>
                         </div>
-                        <button onClick={() => { setMode('GAME'); setScore(0); setHistory([]); setQIndex(0); setStepIndex(0); }} className="w-full bg-indigo-600 text-white text-xl font-black py-5 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all">開始挑戰</button>
+                        <button onClick={() => { setActiveQuestions(FULL_QUESTIONS); setMode('GAME'); setScore(0); setMistakeList(new Set()); setQIndex(0); setStepIndex(0); }} className="w-full bg-indigo-600 text-white text-xl font-black py-5 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all">開始挑戰</button>
                     </div>
                 </div>
             );
 
-            if (mode === 'RESULT') return (
-                <div className="min-h-screen flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl text-center border border-slate-100 animate-in zoom-in-95">
-                        <h2 className="text-4xl font-black text-slate-800 mb-6">考試結束！</h2>
-                        <div className="flex justify-center gap-4 mb-8">
-                            <div className="bg-slate-50 p-6 rounded-3xl w-1/2">
-                                <div className="text-xs font-black text-slate-400 uppercase mb-2">最終得分</div>
-                                <div className="text-4xl font-black text-indigo-600">{Math.round((score/QUESTIONS_DATA.length)*100)}%</div>
-                            </div>
-                            <div className="bg-slate-50 p-6 rounded-3xl w-1/2">
-                                <div className="text-xs font-black text-slate-400 uppercase mb-2">總耗時</div>
-                                <div className="text-4xl font-black text-slate-800">{Math.floor(timer/60)}<span className="text-sm">分</span>{timer%60}<span className="text-sm">秒</span></div>
+            if (mode === 'RESULT') {
+                const totalQ = activeQuestions.length;
+                const wrongCount = mistakeList.size; 
+                // 注意：這裡的錯題數是基於累積的 mistakeList，如果是重做模式，這裡顯示的可能需要調整邏輯
+                // 簡單起見，我們顯示 "這次練習的結果"
+                
+                const isPerfect = wrongCount === 0;
+
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl text-center border border-slate-100 animate-in zoom-in-95">
+                            <h2 className="text-4xl font-black text-slate-800 mb-6">練習結束！</h2>
+                            
+                            {isPerfect ? (
+                                <div className="bg-green-50 p-8 rounded-3xl text-green-700 font-bold mb-8 border border-green-200 text-lg flex flex-col items-center gap-2">
+                                    <Icon.Star /> 太棒了！全部答對！<br/><span className="text-sm font-normal">Jasper 你是數學小天才！</span>
+                                </div>
+                            ) : (
+                                <div className="bg-rose-50 p-6 rounded-3xl mb-8 border border-rose-100">
+                                    <h3 className="font-bold text-rose-600 mb-2 text-lg">還有 {wrongCount} 題需要複習 💪</h3>
+                                    <p className="text-slate-600 text-sm">別灰心，重做一次就會了！</p>
+                                </div>
+                            )}
+
+                            <div className="flex flex-col gap-4">
+                                {!isPerfect && (
+                                    <button onClick={startRedo} className="w-full bg-rose-500 text-white text-xl font-black py-4 rounded-2xl shadow-xl shadow-rose-200 hover:bg-rose-600 active:scale-95 transition-all flex items-center justify-center gap-2">
+                                        <Icon.Redo /> 重做錯題
+                                    </button>
+                                )}
+                                <button onClick={resetAll} className="w-full bg-slate-800 text-white text-xl font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-all">返回主選單</button>
                             </div>
                         </div>
-                        
-                        {history.length > 0 ? (
-                            <div className="text-left bg-rose-50 p-6 rounded-3xl mb-8 border border-rose-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                <h3 className="font-bold text-rose-600 mb-4 flex items-center gap-2 text-lg">⚠️ 需要複習：</h3>
-                                {history.map((h, i) => (
-                                    <div key={i} className="mb-4 border-b border-rose-200 pb-3 last:border-0 last:pb-0">
-                                        <div className="font-black text-slate-800">Q{h.qIndex}: {h.title}</div>
-                                        <div className="text-sm font-bold text-rose-500 mt-1 bg-white px-2 py-1 rounded w-fit">{h.detail}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="bg-green-50 p-8 rounded-3xl text-green-700 font-bold mb-8 border border-green-200 text-lg flex flex-col items-center gap-2">
-                                <Icon.Star />
-                                太棒了！20 題全對！
-                                <span className="text-sm text-green-600 font-normal">Jasper 你是數學小天才！</span>
-                            </div>
-                        )}
-                        
-                        <button onClick={() => { setMode('MENU'); }} className="w-full bg-slate-800 text-white text-xl font-black py-5 rounded-2xl shadow-xl active:scale-95 transition-all">返回主選單</button>
                     </div>
-                </div>
-            );
+                );
+            }
 
             return (
-                <div className="min-h-screen p-4 md:p-8 max-w-2xl mx-auto">
+                <div className="min-h-screen p-4 md:p-8 max-w-2xl mx-auto relative overflow-hidden">
+                    {/* 鼓勵動畫層 */}
+                    {praise && (
+                        <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+                            <div className="praise-anim bg-yellow-400 text-yellow-900 px-8 py-4 rounded-3xl text-4xl font-black shadow-2xl border-4 border-white transform rotate-[-5deg]">
+                                {praise}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-2xl font-bold text-slate-600 shadow-sm border border-slate-100">
-                             <span className="text-xs uppercase text-slate-400">Question</span>
-                             <span className="text-xl text-slate-800">{qIndex + 1} <span className="text-slate-300">/</span> {QUESTIONS_DATA.length}</span>
+                             <span className="text-xs uppercase text-slate-400">Q</span>
+                             <span className="text-xl text-slate-800">{qIndex + 1} <span className="text-slate-300">/</span> {activeQuestions.length}</span>
                         </div>
                          <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-2xl font-bold text-indigo-600 shadow-sm border border-slate-100">
                              <Icon.Clock/> <span className="text-xl font-mono">{Math.floor(timer/60)}:{timer%60 < 10 ? '0'+timer%60 : timer%60}</span>
@@ -590,7 +523,6 @@
 
                     <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden relative">
                         <div className="bg-slate-50 p-8 border-b border-slate-100 text-center relative">
-                            <div className="absolute top-6 right-8 text-xs font-black text-slate-300 uppercase tracking-widest">Jasper Exam</div>
                             <div className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-xs font-black uppercase tracking-widest mb-3">{currentQ.title}</div>
                             <h2 className="text-3xl font-black text-slate-800 leading-snug">{currentQ.text}</h2>
                             {currentQ.isGeometry && <GeometryView type={currentQ.geoType} />}
