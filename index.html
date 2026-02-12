@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jasper 數學特訓 V6.3 (錯題針對版)</title>
+    <title>Jasper 數學特訓 V6.5 (隨機次序+修復版)</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -17,8 +17,9 @@
         .digit-input { width: 100%; height: 100%; text-align: center; font-family: 'Roboto Mono', monospace; font-weight: 700; font-size: 1.5rem; border: 2px solid #cbd5e1; border-radius: 0.5rem; background-color: white; color: #1e293b; transition: all 0.2s; }
         .digit-input:focus { border-color: #6366f1; outline: none; background-color: #eef2ff; transform: scale(1.05); z-index: 10; }
         .digit-input:disabled { background-color: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
-        .carry-input { width: 100%; height: 28px; text-align: center; font-size: 0.9rem; font-weight: bold; color: #ef4444; background-color: #fff1f2; border: 1px dashed #fda4af; border-radius: 4px; }
-        .calc-line { height: 4px; background-color: #334155; border-radius: 2px; margin-top: 4px; margin-bottom: 4px; }
+        /* 進位格位置：保留 V6.4 的設定，在黑線上方 */
+        .carry-input { width: 100%; height: 30px; text-align: center; font-size: 0.9rem; font-weight: bold; color: #ef4444; background-color: transparent; border: 1px dashed #fda4af; border-radius: 4px; z-index: 5; }
+        .calc-line { height: 4px; background-color: #334155; border-radius: 2px; margin-top: 2px; margin-bottom: 4px; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
@@ -41,8 +42,7 @@
             Calc: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>,
             Check: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>,
             Brain: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
-            Alert: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
-            Notebook: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M16 2v20"/></svg>
+            Alert: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
         };
 
         const PRAISE_WORDS = ["太棒了！", "Jasper 好野！", "完全正確！", "做得好！", "數學天才！", "繼續加油！"];
@@ -60,23 +60,21 @@
             const checkAnswer = () => {
                 let userNumStr = inputs.map(d => d === '' ? ' ' : d).join('');
                 if (parseInt(userNumStr.replace(/\s/g, '')) === correctAns) onComplete(correctAns);
-                else setErrorMsg('小心！檢查你的答案和進位/退位。');
+                else setErrorMsg('小心！檢查你的答案和算草。');
             };
 
             return (
                 <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm max-w-sm mx-auto animate-in zoom-in-95">
-                    <div className="grid grid-cols-5 gap-2 font-mono">
+                    <div className="grid grid-cols-5 gap-1 font-mono">
                         <div className="col-span-1"></div>
-                        {carries.map((v, i) => <input key={i} className="carry-input" value={v} placeholder="." onChange={e=>setCarries(p=>{const n=[...p];n[i]=e.target.value.slice(-2);return n;})} />)}
-                        <div className="col-span-1"></div>
-                        {digits1.map((d, i) => <div key={i} className="h-10 flex items-center justify-center text-3xl font-black text-slate-700">{d}</div>)}
+                        {digits1.map((d, i) => <div key={`d1-${i}`} className="h-10 flex items-center justify-center text-3xl font-black text-slate-700">{d}</div>)}
                         <div className="col-span-1 text-3xl font-black text-slate-400">{op}</div>
-                        {digits2.map((d, i) => <div key={i} className="h-10 flex items-center justify-center text-3xl font-black text-slate-700">{d}</div>)}
+                        {digits2.map((d, i) => <div key={`d2-${i}`} className="h-10 flex items-center justify-center text-3xl font-black text-slate-700">{d}</div>)}
+                        <div className="col-span-1"></div>
+                        {carries.map((v, i) => (<div key={`c-${i}`} className="flex items-end justify-center"><input className="carry-input" value={v} placeholder="." onChange={e=>setCarries(p=>{const n=[...p];n[i]=e.target.value.slice(-2);return n;})} /></div>))}
                         <div className="col-span-5 calc-line"></div>
                         <div className="col-span-1"></div>
-                        {inputs.map((v, i) => (
-                            <input key={i} type="number" className={`digit-input ${v!=='' && correctDigits[i]!==' ' && v!==correctDigits[i] ? 'bg-red-50 border-red-300 text-red-600' : ''}`} value={v} disabled={correctDigits[i]===' '} onChange={e => {setInputs(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />
-                        ))}
+                        {inputs.map((v, i) => (<input key={`in-${i}`} type="number" className={`digit-input h-14 ${v!=='' && correctDigits[i]!==' ' && v!==correctDigits[i] ? 'bg-red-50 border-red-300 text-red-600' : ''}`} value={v} disabled={correctDigits[i]===' '} onChange={e => {setInputs(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />))}
                     </div>
                     {errorMsg && <div className="mt-3 text-center text-rose-500 font-bold text-sm bg-rose-50 p-2 rounded">{errorMsg}</div>}
                     <button onClick={checkAnswer} className="mt-5 w-full bg-indigo-600 text-white py-3 rounded-xl font-black shadow-md active:scale-95 transition-all">檢查答案</button>
@@ -104,7 +102,6 @@
             const checkAnswer = () => {
                 let userStep1 = parseInt(inputs1.map(d => d===''?' ':d).join('').replace(/\s/g, ''));
                 let userFinal = parseInt(inputs2.map(d => d===''?' ':d).join('').replace(/\s/g, ''));
-
                 if (userStep1 !== step1Ans) { setErrorMsg('第一步算錯了 (中間那行)'); return; }
                 if (userFinal !== finalAns) { setErrorMsg('最後答案算錯了'); return; }
                 onComplete(finalAns);
@@ -113,26 +110,15 @@
             return (
                 <div className="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm max-w-sm mx-auto animate-in zoom-in-95">
                     <div className="grid grid-cols-5 gap-1 font-mono">
-                        <div className="col-span-1"></div>
-                        {carries1.map((v, i) => <input key={`c1-${i}`} className="carry-input" value={v} onChange={e=>setCarries1(p=>{const n=[...p];n[i]=e.target.value.slice(-2);return n;})} />)}
-                        <div className="col-span-1"></div>
-                        {digits1.map((d, i) => <div key={`d1-${i}`} className="h-8 flex items-center justify-center text-2xl font-black text-slate-700">{d}</div>)}
-                        <div className="col-span-1 text-2xl font-black text-slate-400">{op1}</div>
-                        {digits2.map((d, i) => <div key={`d2-${i}`} className="h-8 flex items-center justify-center text-2xl font-black text-slate-700">{d}</div>)}
+                        <div className="col-span-1"></div>{carries1.map((v, i) => <input key={`c1-${i}`} className="carry-input" value={v} onChange={e=>setCarries1(p=>{const n=[...p];n[i]=e.target.value.slice(-2);return n;})} />)}
+                        <div className="col-span-1"></div>{digits1.map((d, i) => <div key={`d1-${i}`} className="h-8 flex items-center justify-center text-2xl font-black text-slate-700">{d}</div>)}
+                        <div className="col-span-1 text-2xl font-black text-slate-400">{op1}</div>{digits2.map((d, i) => <div key={`d2-${i}`} className="h-8 flex items-center justify-center text-2xl font-black text-slate-700">{d}</div>)}
                         <div className="col-span-5 calc-line"></div>
-                        <div className="col-span-1"></div>
-                        {inputs1.map((v, i) => (
-                            <input key={`in1-${i}`} type="number" className={`digit-input h-10 ${v!=='' && digitsStep1[i]!==' ' && v!==digitsStep1[i] ? 'bg-red-50 border-red-300' : ''}`} value={v} disabled={digitsStep1[i]===' '} onChange={e => {setInputs1(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />
-                        ))}
-                        <div className="col-span-1"></div>
-                        {carries2.map((v, i) => <input key={`c2-${i}`} className="carry-input mt-2" value={v} onChange={e=>setCarries2(p=>{const n=[...p];n[i]=e.target.value.slice(-2);return n;})} />)}
-                        <div className="col-span-1 text-2xl font-black text-slate-400 mt-2">{op2}</div>
-                        {digits3.map((d, i) => <div key={`d3-${i}`} className="h-8 flex items-center justify-center text-2xl font-black text-slate-700 mt-2">{d}</div>)}
+                        <div className="col-span-1"></div>{inputs1.map((v, i) => <input key={`in1-${i}`} type="number" className={`digit-input h-10 ${v!=='' && digitsStep1[i]!==' ' && v!==digitsStep1[i] ? 'bg-red-50 border-red-300' : ''}`} value={v} disabled={digitsStep1[i]===' '} onChange={e => {setInputs1(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />)}
+                        <div className="col-span-1"></div>{carries2.map((v, i) => <input key={`c2-${i}`} className="carry-input mt-2" value={v} onChange={e=>setCarries2(p=>{const n=[...p];n[i]=e.target.value.slice(-2);return n;})} />)}
+                        <div className="col-span-1 text-2xl font-black text-slate-400 mt-2">{op2}</div>{digits3.map((d, i) => <div key={`d3-${i}`} className="h-8 flex items-center justify-center text-2xl font-black text-slate-700 mt-2">{d}</div>)}
                         <div className="col-span-5 calc-line"></div>
-                        <div className="col-span-1"></div>
-                        {inputs2.map((v, i) => (
-                            <input key={`in2-${i}`} type="number" className={`digit-input h-10 ${v!=='' && digitsFinal[i]!==' ' && v!==digitsFinal[i] ? 'bg-red-50 border-red-300' : ''}`} value={v} disabled={digitsFinal[i]===' '} onChange={e => {setInputs2(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />
-                        ))}
+                        <div className="col-span-1"></div>{inputs2.map((v, i) => <input key={`in2-${i}`} type="number" className={`digit-input h-10 ${v!=='' && digitsFinal[i]!==' ' && v!==digitsFinal[i] ? 'bg-red-50 border-red-300' : ''}`} value={v} disabled={digitsFinal[i]===' '} onChange={e => {setInputs2(p=>{const n=[...p];n[i]=e.target.value.slice(-1);return n;}); setErrorMsg('');}} />)}
                     </div>
                     {errorMsg && <div className="mt-3 text-center text-rose-500 font-bold text-sm bg-rose-50 p-2 rounded">{errorMsg}</div>}
                     <button onClick={checkAnswer} className="mt-5 w-full bg-indigo-600 text-white py-3 rounded-xl font-black shadow-md active:scale-95 transition-all">檢查全式</button>
@@ -206,242 +192,36 @@
             );
         };
 
-        const GeometryView = ({ type }) => (
-            <div className="flex justify-center my-4">
-                 <svg width="200" height="150" viewBox="0 0 200 150">
-                    {type === 'trapezoid' && ( <><path d="M40 130 L160 130 L140 20 L60 20 Z" fill="none" stroke="#334155" strokeWidth="4" /><path d="M60 20 L100 130 L140 20 Z" fill="#e0e7ff" stroke="#4f46e5" strokeWidth="3" strokeDasharray="5,5" /></> )}
-                    {type === 'triangle' && <path d="M50 130 L150 130 L50 30 Z" fill="none" stroke="#334155" strokeWidth="4" />}
-                </svg>
-            </div>
-        );
-
-        // --- 核心功能：題目生成器 ---
+        // --- 核心功能：題目生成器 (隨機 + 修正) ---
         const generateQuizData = () => {
             const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
             const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
 
-            return [
-                // 1-5 基礎運算
+            const allQs = [
+                // 1-8 運算題
                 (() => { const b=rand(10,20), c=rand(5,9), a=b+c+rand(10,30); return { id: 1, title: '運算次序', text: `${a} - (${b} + ${c}) = ?`, steps: [{ type: 'LOGIC', text: '有括弧，第一步先算？', options: shuffle([`${a} - ${b}`, `${b} + ${c}`, `${a} + ${c}`, `${a} - ${c}`]), ans: `${b} + ${c}` }, { type: 'ADD', n1: b, n2: c, hint: '直式計算括弧內' }, { type: 'SUB', n1: a, n2: b+c, hint: '最後計算減法' }]}; })(),
                 (() => { const b=rand(30,50), c=rand(10,25), diff=b-c, multi=rand(3,8); return { id: 2, title: '運算次序', text: `${multi} × (${b} - ${c}) = ?`, steps: [{ type: 'LOGIC', text: '括弧內的減法要先算。', options: shuffle([`${multi} × ${b}`, `${b} - ${c}`, `${multi} × ${c}`, `${b} + ${c}`]), ans: `${b} - ${c}` }, { type: 'SUB', n1: b, n2: c, hint: '直式計算括弧內' }, { type: 'MULTI', n1: diff, n2: multi, hint: '再乘以前面的數' }]}; })(),
-                (() => { const a=rand(10,20), b=rand(4,9), c=rand(3,8); return { id: 3, title: '先乘後加', text: `${a} + ${b} × ${c} = ?`, steps: [{ type: 'LOGIC', text: '先乘除後加減。第一步？', options: shuffle([`${a} + ${b}`, `${b} × ${c}`, `${a} + ${c}`, `${a} × ${c}`]), ans: `${b} × ${c}` }, { type: 'INPUT_CHECK', label: `心算 ${b} × ${c} = ?`, correct: (b*c).toString() }, { type: 'ADD', n1: a, n2: b*c, hint: '最後計算加法' }]}; })(),
+                (() => { const a=rand(10,20), b=rand(4,9), c=rand(3,8); return { id: 3, title: '先乘後加', text: `${a} + ${b} × ${c} = ?`, steps: [{ type: 'LOGIC', text: '先乘除後加減。第一步？', options: shuffle([`${a} + ${b}`, `${b} × ${c}`, `${a} + ${c}`, `${a} × ${c}`]), ans: `${b} × ${c}` }, { type: 'INPUT_CHECK', label: `算出 ${b} × ${c} 的答案`, correct: (b*c).toString() }, { type: 'ADD', n1: a, n2: b*c, hint: '最後計算加法' }]}; })(),
                 (() => { const a=rand(600,900), b=rand(100,300), c=rand(50,100); return { id: 4, title: '連續減法 (連式)', text: `${a} - ${b} - ${c} = ?`, steps: [{ type: 'LOGIC', text: '從左到右算。', options: shuffle([`${a} - ${b}`, `${b} - ${c}`, `${a} - ${c}`, `${a} + ${b}`]), ans: `${a} - ${b}` }, { type: 'CONTINUOUS', n1: a, n2: b, n3: c, op1: '-', op2: '-', hint: '連式直式：先算上層，再算下層' }]}; })(),
                 (() => { const b=rand(25,45), c=rand(10,20), a=rand(4,9); return { id: 5, title: '混合應用', text: `${a} × (${b} - ${c}) = ?`, steps: [{ type: 'LOGIC', text: '先算括弧。', options: shuffle([`${b} - ${c}`, `${a} × ${b}`, `${a} + ${b}`, `${a} - ${c}`]), ans: `${b} - ${c}` }, { type: 'SUB', n1: b, n2: c, hint: '計算括弧內' }, { type: 'MULTI', n1: b-c, n2: a, hint: '最後乘法' }]}; })(),
-                
-                // 6-8 純直式
                 (() => { const a=rand(1000,4000), b=rand(2000,4000); return { id: 6, title: '四位數直式', text: `${a} + ${b} = ?`, steps: [{ type: 'LOGIC', text: '純加法', options: ['開始計算', '心算', '放棄', '跳過'], ans: '開始計算' }, { type: 'ADD', n1: a, n2: b, hint: '小心連續進位' }]}; })(),
                 (() => { const a=rand(4000,6000), b=rand(1000,3000); const a_fixed=Math.floor(a/10)*10; return { id: 7, title: '四位數借位', text: `${a_fixed} - ${b} = ?`, steps: [{ type: 'LOGIC', text: '被減數有 0', options: ['開始計算', '心算', '放棄', '跳過'], ans: '開始計算' }, { type: 'SUB', n1: a_fixed, n2: b, hint: '0 不夠減，向左借位' }]}; })(),
                 (() => { const a=rand(2000,3000), b=rand(500,1000), c=rand(300,600); return { id: 8, title: '連續混合 (連式)', text: `${a} - ${b} + ${c} = ?`, steps: [{ type: 'LOGIC', text: '純算術連加減，請用「連式」計算。', options: shuffle(['開始連式計算', '分開計算', '心算', '放棄']), ans: '開始連式計算' }, { type: 'CONTINUOUS', n1: a, n2: b, n3: c, op1: '-', op2: '+', hint: '連式直式：先減後加' }]}; })(),
                 
-                // 9-14 時鐘與圖形
-                { id: 9, title: '24小時制', text: '下午 9:20 用 24 小時制表示。', steps: [{ type: 'LOGIC', text: '下午 (PM) 小時？', options: shuffle(['加 12', '減 12', '不變', '加 10']), ans: '加 12' }, { type: 'INPUT_CHECK', label: '9 + 12 = ?', correct: '21' }, { type: 'INPUT_CHECK', label: '完整時間 (21:20)', correct: '21:20' } ]},
-                { id: 10, title: '24小時制', text: '15:45 是上午還是下午？', steps: [{ type: 'LOGIC', text: '15 > 12', options: shuffle(['下午 (PM)', '上午 (AM)', '中午', '凌晨']), ans: '下午 (PM)' }, { type: 'INPUT_CHECK', label: '15 - 12 = ?', correct: '3' }, { type: 'INPUT_CHECK', label: '寫法 (3:45pm)', correct: '3:45pm' } ]},
+                // 9-11 時鐘 (修正提示字眼)
+                { id: 9, title: '24小時制', text: '下午 9:20 用 24 小時制表示。', steps: [{ type: 'LOGIC', text: '下午 (PM) 小時？', options: shuffle(['加 12', '減 12', '不變', '加 10']), ans: '加 12' }, { type: 'INPUT_CHECK', label: '下午時間的小時部份是？', correct: '21' }, { type: 'INPUT_CHECK', label: '完整時間 (例如 23:45)', correct: '21:20' } ]},
+                { id: 10, title: '24小時制', text: '15:45 是上午還是下午？', steps: [{ type: 'LOGIC', text: '15 > 12', options: shuffle(['下午 (PM)', '上午 (AM)', '中午', '凌晨']), ans: '下午 (PM)' }, { type: 'INPUT_CHECK', label: '15 - 12 的答案是？', correct: '3' }, { type: 'INPUT_CHECK', label: '寫法 (例如 2:15pm)', correct: '3:45pm' } ]},
                 { id: 11, title: '時間推算', text: '14:00 兩小時半後是？', steps: [{ type: 'LOGIC', text: '14:00 + 2.5h', options: shuffle(['16:30', '15:30', '14:30', '17:00']), ans: '16:30' }, { type: 'CLOCK_INTERACTIVE', startH: 14, startM: 0, targetH: 16, targetM: 30, hint: '調整至 16:30' } ]},
-                { id: 12, title: '圖形與角', isGeometry: true, geoType: 'trapezoid', text: '觀察梯形內的三角形。', steps: [{ type: 'LOGIC', text: '銳角數量？', options: shuffle(['3個', '2個', '1個', '0個']), ans: '3個' }, { type: 'LOGIC', text: '鈍角數量(梯形)？', options: shuffle(['2個', '1個', '3個', '0個']), ans: '2個' } ]},
-                { id: 13, title: '辨別直角', isGeometry: true, geoType: 'triangle', text: '直角三角形。', steps: [{ type: 'LOGIC', text: '直角數量？', options: shuffle(['1個', '0個', '2個', '3個']), ans: '1個' }, { type: 'LOGIC', text: '最大角是？', options: shuffle(['直角', '銳角', '鈍角', '平角']), ans: '直角' } ]},
-                { id: 14, title: '角的大小', text: '鈍角 vs 直角', steps: [{ type: 'LOGIC', text: '90度 vs >90度', options: shuffle(['鈍角較大', '直角較大', '一樣大', '無法比較']), ans: '鈍角較大' }, { type: 'LOGIC', text: '銳角 vs 直角', options: shuffle(['銳角', '直角', '鈍角', '一樣細']), ans: '銳角' } ]},
                 
-                // 15-20 文字題 (拆解步驟)
+                // 15-22 文字題
                 (() => { const m = rand(10, 20), times = rand(3, 6); return { id: 15, title: '倍數文字題', text: `妹妹有 $${m}，姐姐是她的 ${times} 倍。姐姐有多少錢？`, steps: [{ type: 'LOGIC', text: `${times} 倍用什麼運算？`, options: shuffle(['乘法', '加法', '減法', '除法']), ans: '乘法' }, { type: 'MULTI', n1: m, n2: times, hint: `直式 ${m} × ${times}` }]}; })(),
                 { id: 16, title: '找贖文字題', text: '我有 $100，買了 4 本 $22 的書，還剩多少錢？', steps: [{ type: 'LOGIC', text: 'Step 1: 總價', options: shuffle(['22 × 4', '100 - 22', '22 + 4', '100 ÷ 4']), ans: '22 × 4' }, { type: 'MULTI', n1: 22, n2: 4, hint: '計算總價' }, { type: 'LOGIC', text: 'Step 2: 找贖', options: shuffle(['100 - 88', '88 - 100', '100 + 88', '88 × 100']), ans: '100 - 88' }, { type: 'SUB', n1: 100, n2: 88, hint: '計算找贖' } ]},
                 { id: 17, title: '比較文字題', text: '書 A $45，書 B 比 A 便宜 $12。書 B 多少錢？', steps: [{ type: 'LOGIC', text: '便宜 = 少', options: shuffle(['45 - 12', '45 + 12', '45 × 12', '12 - 45']), ans: '45 - 12' }, { type: 'SUB', n1: 45, n2: 12, hint: '計算書 B' } ]},
-                
-                // 18. 修正版兩步文字題 (保持 Step-by-Step)
-                (() => {
-                    const total = 500, a = rand(100, 150), b = rand(120, 180);
-                    return { id: 18, title: '兩步文字題', text: `店有 ${total} 個蘋果，上午賣 ${a} 個，下午賣 ${b} 個。剩多少？`, steps: [
-                        { type: 'LOGIC', text: 'Step 1: 先算總共賣了多少個', options: shuffle([`${a} + ${b}`, `${total} - ${a}`, `${total} + ${a}`, `${a} - ${b}`]), ans: `${a} + ${b}` },
-                        { type: 'ADD', n1: a, n2: b, hint: '直式計算賣出的總數' },
-                        { type: 'LOGIC', text: `總共賣了 ${a+b} 個，店有 ${total} 個。剩多少？`, options: shuffle([`${total} - ${a+b}`, `${a+b} - ${total}`, `${total} + ${a+b}`]), ans: `${total} - ${a+b}` },
-                        { type: 'SUB', n1: total, n2: a+b, hint: '用總數減去賣出的數量' }
-                    ]};
-                })(),
-                
+                (() => { const total = 500, a = rand(100, 150), b = rand(120, 180); return { id: 18, title: '兩步文字題', text: `店有 ${total} 個蘋果，上午賣 ${a} 個，下午賣 ${b} 個。剩多少？`, steps: [{ type: 'LOGIC', text: 'Step 1: 先算總共賣了多少個', options: shuffle([`${a} + ${b}`, `${total} - ${a}`, `${total} + ${a}`, `${a} - ${b}`]), ans: `${a} + ${b}` }, { type: 'ADD', n1: a, n2: b, hint: '直式計算賣出的總數' }, { type: 'LOGIC', text: `總共賣了 ${a+b} 個，店有 ${total} 個。剩多少？`, options: shuffle([`${total} - ${a+b}`, `${a+b} - ${total}`, `${total} + ${a+b}`]), ans: `${total} - ${a+b}` }, { type: 'SUB', n1: total, n2: a+b, hint: '用總數減去賣出的數量' }]}; })(),
                 { id: 19, title: '每人付款', text: '3 人去野餐，每人付 $35。共付多少？', steps: [{ type: 'LOGIC', text: '每人 $35，3 人', options: shuffle(['35 × 3', '35 + 3', '35 - 3', '35 ÷ 3']), ans: '35 × 3' }, { type: 'MULTI', n1: 35, n2: 3, hint: '直式計算' } ]},
-                { id: 20, title: '合資文字題', text: '哥 $20，弟 $10。買 $45 玩具，欠多少？', steps: [{ type: 'LOGIC', text: 'Step 1: 共有', options: shuffle(['20 + 10', '20 - 10', '20 × 10', '45 - 20']), ans: '20 + 10' }, { type: 'INPUT_CHECK', label: '20 + 10 = ?', correct: '30' }, { type: 'LOGIC', text: 'Step 2: 欠多少', options: shuffle(['45 - 30', '30 + 45', '45 + 30', '30 - 45']), ans: '45 - 30' }, { type: 'SUB', n1: 45, n2: 30, hint: '計算差額' } ]},
-
-                // --- 新增題目：21 & 22 (錯題特訓) ---
-                // 21. 禮物題 (時間單位陷阱)
+                { id: 20, title: '合資文字題', text: '哥 $20，弟 $10。買 $45 玩具，欠多少？', steps: [{ type: 'LOGIC', text: 'Step 1: 共有', options: shuffle(['20 + 10', '20 - 10', '20 × 10', '45 - 20']), ans: '20 + 10' }, { type: 'INPUT_CHECK', label: '20 + 10 的答案', correct: '30' }, { type: 'LOGIC', text: 'Step 2: 欠多少', options: shuffle(['45 - 30', '30 + 45', '45 + 30', '30 - 45']), ans: '45 - 30' }, { type: 'SUB', n1: 45, n2: 30, hint: '計算差額' } ]},
+                (() => { const daily = rand(130, 140), remain = rand(80, 90); return { id: 21, title: '文字題：隱藏時間', text: `商場上星期每天派出禮物 ${daily} 份，餘下 ${remain} 份。商場共預備了多少份？`, steps: [{ type: 'LOGIC', text: '題目說「上星期每天」。上星期有幾天？', options: shuffle(['7天', '5天', '6天', '1天']), ans: '7天' }, { type: 'MULTI', n1: daily, n2: 7, hint: `先算「上星期」總共派出的數量 (${daily} × 7)` }, { type: 'LOGIC', text: `派出了 ${daily*7} 份，還剩 ${remain} 份。原本有多少？`, options: shuffle([`${daily*7} + ${remain}`, `${daily*7} - ${remain}`, `${remain} - ${daily}`]), ans: `${daily*7} + ${remain}` }, { type: 'ADD', n1: daily*7, n2: remain, hint: '派出 + 餘下 = 原有' }]}; })(),
                 (() => {
-                    const daily = rand(130, 140), remain = rand(80, 90);
-                    return { id: 21, title: '文字題：隱藏時間', text: `商場上星期每天派出禮物 ${daily} 份，餘下 ${remain} 份。商場共預備了多少份？`, steps: [
-                        { type: 'LOGIC', text: '題目說「上星期每天」。上星期有幾天？', options: shuffle(['7天', '5天', '6天', '1天']), ans: '7天' },
-                        { type: 'MULTI', n1: daily, n2: 7, hint: `先算「上星期」總共派出的數量 (${daily} × 7)` },
-                        { type: 'LOGIC', text: `派出了 ${daily*7} 份，還剩 ${remain} 份。原本有多少？`, options: shuffle([`${daily*7} + ${remain}`, `${daily*7} - ${remain}`, `${remain} - ${daily}`]), ans: `${daily*7} + ${remain}` },
-                        { type: 'ADD', n1: daily*7, n2: remain, hint: '派出 + 餘下 = 原有' }
-                    ]};
-                })(),
-
-                // 22. 文具題 (篩選資訊 + 分步計算)
-                (() => {
-                    // 固定價格以符合圖片描述，但購買數量可變
-                    return { id: 22, title: '文字題：購物 (圖表)', text: '圖中有三款筆記簿：$28, $34, $17。浩文買了 3 本「最貴」的筆記簿，和 3 個 $68 的文件袋。共付多少？', steps: [
-                        { type: 'LOGIC', text: 'Step 1: 看圖表，哪一款是「最貴」的筆記簿？', options: shuffle(['$34', '$28', '$17', '$68']), ans: '$34' },
-                        { type: 'MULTI', n1: 34, n2: 3, hint: '先算 3 本筆記簿的價錢 ($34 × 3)' }, 
-                        { type: 'MULTI', n1: 68, n2: 3, hint: '再算 3 個文件袋的價錢 ($68 × 3)' },
-                        { type: 'LOGIC', text: '筆記簿 $102，文件袋 $204。共需付？', options: shuffle(['102 + 204', '204 - 102', '204 ÷ 2']), ans: '102 + 204' },
-                        { type: 'ADD', n1: 102, n2: 204, hint: '將兩樣貨品的總價加起來' }
-                    ]};
-                })()
-            ];
-        };
-
-        const App = () => {
-            const [mode, setMode] = useState('MENU');
-            const [questions, setQuestions] = useState([]);
-            const [qIndex, setQIndex] = useState(0);
-            const [stepIndex, setStepIndex] = useState(0);
-            const [score, setScore] = useState(0);
-            const [mistakeList, setMistakeList] = useState([]); 
-            const [timer, setTimer] = useState(0);
-            const [clockState, setClockState] = useState({h: 12, m: 0});
-            const [praise, setPraise] = useState('');
-            const timerRef = useRef(null);
-
-            const startQuiz = () => {
-                const newQs = generateQuizData();
-                setQuestions(newQs);
-                setQIndex(0);
-                setStepIndex(0);
-                setScore(0);
-                setMistakeList([]);
-                setTimer(0);
-                setMode('GAME');
-            };
-
-            const currentQ = questions[qIndex] || {};
-            const currentStep = currentQ.steps ? currentQ.steps[stepIndex] : {};
-            const progress = questions.length > 0 ? ((qIndex) / questions.length) * 100 : 0;
-
-            useEffect(() => {
-                if (mode === 'GAME') {
-                    timerRef.current = setInterval(() => setTimer(t => t + 1), 1000);
-                } else clearInterval(timerRef.current);
-                return () => clearInterval(timerRef.current);
-            }, [mode]);
-
-            useEffect(() => {
-                if (mode === 'GAME' && currentStep.type === 'CLOCK_INTERACTIVE') {
-                    setClockState({ h: currentStep.startH || 12, m: currentStep.startM || 0 });
-                }
-            }, [qIndex, stepIndex, mode]);
-
-            const showPraise = () => {
-                const msg = PRAISE_WORDS[Math.floor(Math.random() * PRAISE_WORDS.length)];
-                setPraise(msg);
-                setTimeout(() => setPraise(''), 1500);
-            };
-
-            const markMistake = (detail) => {
-                setMistakeList(prev => [...prev, { qId: currentQ.id, title: currentQ.title, correctText: currentQ.text, errorDetail: detail }]);
-            };
-
-            const handleLogicChoice = (opt) => {
-                if (opt === currentStep.ans) { showPraise(); nextStep(); } 
-                else { markMistake(`邏輯選錯：選了 ${opt} (正確: ${currentStep.ans})`); alert(`選錯了！試試其他的。`); }
-            };
-
-            const handleCalcComplete = (val) => { showPraise(); nextStep(); };
-
-            const handleInputCheck = (val) => {
-                if (val.trim() === currentStep.correct) { showPraise(); nextStep(); } 
-                else { markMistake(`填空錯誤：填了 ${val} (正確: ${currentStep.correct})`); alert(`答案不對喔！`); }
-            };
-
-            const handleTimeUpdate = (newH, newM) => setClockState({h: newH, m: newM});
-            const handleClockConfirm = () => {
-                let targetH = currentStep.targetH, h = clockState.h, m = clockState.m, isCorrect = false;
-                if (m === currentStep.targetM) {
-                    if (h === targetH || (h > 12 && h - 12 === targetH) || (targetH > 12 && h === targetH - 12)) isCorrect = true;
-                }
-                if (isCorrect) { showPraise(); nextStep(); } 
-                else { markMistake(`時間調錯：調到了 ${h}:${m}`); alert(`時間不對，請再調一次！`); }
-            };
-
-            const nextStep = () => {
-                if (stepIndex < currentQ.steps.length - 1) setStepIndex(p => p + 1);
-                else {
-                    if (qIndex < questions.length - 1) { setQIndex(q => q + 1); setStepIndex(0); } 
-                    else setMode('RESULT');
-                }
-            };
-
-            const renderStep = () => {
-                const stepKey = `${qIndex}-${stepIndex}`; 
-                switch(currentStep.type) {
-                    case 'LOGIC': return <div key={stepKey} className="grid gap-4 animate-in slide-in-from-right"><div className="bg-indigo-50 p-4 rounded-xl text-indigo-800 font-bold flex gap-2"><Icon.Brain/> {currentStep.text}</div>{currentStep.options.map((o, i) => <button key={i} onClick={() => handleLogicChoice(o)} className="p-4 border-2 border-slate-200 rounded-xl font-bold hover:bg-indigo-100 hover:border-indigo-400 text-left">{o}</button>)}</div>;
-                    case 'ADD': case 'SUB': return <div key={stepKey} className="animate-in zoom-in-95"><div className="bg-emerald-50 p-3 rounded-xl text-emerald-800 font-bold mb-4 text-center text-sm"><Icon.Calc/> {currentStep.hint}</div><VerticalAddSub n1={currentStep.n1} n2={currentStep.n2} op={currentStep.type==='ADD'?'+':'-'} onComplete={handleCalcComplete} /></div>;
-                    case 'MULTI': return <div key={stepKey} className="animate-in zoom-in-95"><div className="bg-emerald-50 p-3 rounded-xl text-emerald-800 font-bold mb-4 text-center text-sm"><Icon.Calc/> {currentStep.hint}</div><VerticalMulti n1={currentStep.n1} n2={currentStep.n2} onComplete={handleCalcComplete} /></div>;
-                    case 'CONTINUOUS': return <div key={stepKey} className="animate-in zoom-in-95"><div className="bg-purple-50 p-3 rounded-xl text-purple-800 font-bold mb-4 text-center text-sm"><Icon.Calc/> {currentStep.hint}</div><VerticalContinuous n1={currentStep.n1} n2={currentStep.n2} n3={currentStep.n3} op1={currentStep.op1} op2={currentStep.op2} onComplete={handleCalcComplete} /></div>;
-                    case 'INPUT_CHECK': return <div key={stepKey} className="flex flex-col gap-4 animate-in slide-in-from-right"><label className="font-bold text-slate-700">{currentStep.label}</label><input type="text" className="p-4 border-2 border-slate-300 rounded-xl text-center text-2xl font-black" placeholder="輸入答案" onKeyDown={(e)=>{if(e.key==='Enter') handleInputCheck(e.target.value)}} /><button className="bg-slate-800 text-white p-4 rounded-xl font-black" onClick={(e)=>handleInputCheck(e.target.previousSibling.value)}>確定</button></div>;
-                    case 'CLOCK_INTERACTIVE': return <div key={stepKey} className="animate-in zoom-in-95"><div className="bg-yellow-50 p-3 rounded-xl text-yellow-800 font-bold mb-4 text-center text-sm"><Icon.Clock/> {currentStep.hint}</div><ClockFace h={clockState.h} m={clockState.m} interactive={true} onTimeChange={handleTimeUpdate} onConfirm={handleClockConfirm}/></div>;
-                    default: return null;
-                }
-            };
-
-            if (mode === 'MENU') return (
-                <div className="min-h-screen flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full shadow-2xl text-center border border-slate-100">
-                        <div className="inline-block p-4 bg-indigo-100 rounded-full text-indigo-600 mb-6"><Icon.Brain/></div>
-                        <h1 className="text-3xl font-black text-slate-800 mb-2">Jasper 數學 V6.3</h1>
-                        <p className="text-indigo-500 font-bold mb-8 uppercase tracking-widest">錯題特訓版 (22題)</p>
-                        <button onClick={startQuiz} className="w-full bg-indigo-600 text-white text-xl font-black py-5 rounded-2xl shadow-xl hover:bg-indigo-700 active:scale-95 transition-all">開始挑戰</button>
-                    </div>
-                </div>
-            );
-
-            if (mode === 'RESULT') {
-                const uniqueMistakes = mistakeList.filter((v,i,a)=>a.findIndex(t=>(t.qId===v.qId))===i);
-                return (
-                    <div className="min-h-screen flex items-center justify-center p-4">
-                        <div className="bg-white rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl text-center border border-slate-100 animate-in zoom-in-95">
-                            <h2 className="text-4xl font-black text-slate-800 mb-6">特訓結束！</h2>
-                            {uniqueMistakes.length === 0 ? (
-                                <div className="bg-green-50 p-8 rounded-3xl text-green-700 font-bold mb-8 border border-green-200">太棒了！這次全對！</div>
-                            ) : (
-                                <div className="text-left bg-rose-50 p-6 rounded-3xl mb-8 border border-rose-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                    <h3 className="font-bold text-rose-600 mb-4">⚠️ 錯誤回顧：</h3>
-                                    {uniqueMistakes.map((m, i) => (
-                                        <div key={i} className="mb-4 border-b border-rose-200 pb-3 last:border-0">
-                                            <div className="font-black text-slate-800">{m.title}</div>
-                                            <div className="text-xs text-slate-500 mb-1">{m.correctText}</div>
-                                            <div className="text-sm font-bold text-rose-500">{m.errorDetail}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            <button onClick={startQuiz} className="w-full bg-slate-800 text-white text-xl font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-all">再來一次 (新題目)</button>
-                        </div>
-                    </div>
-                );
-            }
-
-            return (
-                <div className="min-h-screen p-4 md:p-8 max-w-2xl mx-auto relative overflow-hidden">
-                    {praise && <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"><div className="praise-anim bg-yellow-400 text-yellow-900 px-8 py-4 rounded-3xl text-4xl font-black shadow-2xl border-4 border-white transform rotate-[-5deg]">{praise}</div></div>}
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-2xl font-bold text-slate-600 shadow-sm border border-slate-100"><span>Q {qIndex + 1} / {questions.length}</span></div>
-                         <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-2xl font-bold text-indigo-600 shadow-sm border border-slate-100"><Icon.Clock/> <span>{Math.floor(timer/60)}:{timer%60 < 10 ? '0'+timer%60 : timer%60}</span></div>
-                    </div>
-                    <div className="w-full bg-slate-200 h-2 rounded-full mb-6 overflow-hidden"><div className="bg-indigo-500 h-full transition-all duration-500" style={{width: `${progress}%`}}></div></div>
-                    <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden relative">
-                        <div className="bg-slate-50 p-8 border-b border-slate-100 text-center relative">
-                            <div className="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-600 text-xs font-black uppercase tracking-widest mb-3">{currentQ.title}</div>
-                            <h2 className="text-3xl font-black text-slate-800 leading-snug">{currentQ.text}</h2>
-                            {currentQ.isGeometry && <GeometryView type={currentQ.geoType} />}
-                            {currentQ.id === 22 && <div className="text-slate-500 text-sm mt-2 font-bold flex justify-center gap-4"><div className="bg-white px-3 py-1 rounded shadow">A: $28</div><div className="bg-white px-3 py-1 rounded shadow">B: $34</div><div className="bg-white px-3 py-1 rounded shadow">C: $17</div></div>}
-                        </div>
-                        <div className="p-8 min-h-[350px] flex flex-col">
-                            <div className="text-center text-xs font-bold text-slate-400 mb-6 uppercase tracking-widest mb-2">Step {stepIndex + 1} of {currentQ.steps.length}</div>
-                            {renderStep()}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                    const priceA=rand(25,29), priceB=rand(30,35), priceC=rand(15,20);
+                    const mostExpensive = Math.max(priceA, priceB, priceC);
+                    const filePrice =
